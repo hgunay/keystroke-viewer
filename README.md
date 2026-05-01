@@ -1,36 +1,95 @@
 # KeystrokeViewer
 
-Keystroke Pro tarzi macOS klavye tuslarini ekranda gosteren uygulama.
+A macOS menu bar app that displays your keystrokes as a real-time overlay on screen. Inspired by Keystroke Pro, designed with MacBook Pro keyboard-style key caps.
 
-## Calistirma
+![macOS](https://img.shields.io/badge/macOS-13%2B-blue)
+![Swift](https://img.shields.io/badge/Swift-5.9-orange)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-1. `KeystrokeViewer.xcodeproj` dosyasini Xcode ile ac
-2. Top-left'te **Run** (Cmd+R)
-3. Ilk calistirmada Accessibility izni isteyecek:
-   - System Settings -> Privacy & Security -> Accessibility
-   - KeystrokeViewer'i bul ve aktiflestir
-   - Uygulamayi yeniden calistir
-4. Menubar'da klavye iconu gorunur. Menuden **Preferences** acabilirsin.
-5. Test icin baska bir uygulamada (Notes, Safari) yazmaya basla; tuslar ekranin altinda belirir.
+## Features
 
-## Gereksinimler
+- **Real-time keystroke overlay** with MacBook Pro keyboard proportions
+- **Modifier combo detection** — Cmd+Shift+S shows as a single combo, not three separate keys
+- **Caps Lock indicator** with green LED, shows on/off state
+- **Key repeat filtering** — holding a key only shows it once
+- **Function key support** — F1 through F15
+- **Case-aware display** — uppercase when Caps Lock is on, lowercase when off
+- **Configurable key groups** — toggle visibility for alphanumeric, modifiers, function keys, navigation, special keys, and Caps Lock independently
+- **7 overlay positions** — top, bottom, center, and all four corners
+- **Adjustable appearance** — font size, opacity, and display duration
+- **Launch at login** — optional auto-start via macOS Login Items
+- **Menu bar app** — runs as a lightweight tray icon, no Dock clutter
 
-- macOS 13 (Ventura) veya ustu
+## Requirements
+
+- macOS 13 (Ventura) or later
 - Xcode 15+
-- Apple Developer hesabi gerekmez (lokal calistirmak icin)
+- No Apple Developer account needed for local builds
 
-## Yapi
+## Getting Started
 
-- `KeystrokeApp.swift` - Entry point, SwiftUI App
-- `AppDelegate.swift` - Lifecycle, Accessibility izni, menubar
-- `AppSettings.swift` - @AppStorage tabanli kullanici ayarlari
-- `KeyMonitor.swift` - CGEventTap ile global tus dinleme
-- `OverlayController.swift` - NSPanel floating window yonetimi
-- `KeystrokeOverlay.swift` - SwiftUI tus capleri
-- `SettingsView.swift` - Preferences penceresi
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/hgunay/keystroke-viewer.git
+   ```
 
-## Bilinen kisitlar
+2. Open `KeystrokeViewer.xcodeproj` in Xcode
 
-- Sandbox kapali (CGEventTap icin gerekli) -> Mac App Store dagitimi icin Apple ozel entitlement'i lazim
-- Kod imzalama yok; ilk acilista "Cannot be opened" gelirse System Settings -> Privacy & Security'den "Open Anyway" tikla
-- Mouse tiklama gosterimi henuz yok (TODO)
+3. Build and run (Cmd+R)
+
+4. Grant Accessibility permission on first launch:
+   - **System Settings > Privacy & Security > Accessibility**
+   - Find **KeystrokeViewer** and enable it
+   - Restart the app
+
+5. A keyboard icon appears in the menu bar. Start typing in any app to see the overlay.
+
+## Usage
+
+### Menu Bar
+
+Right-click (or click) the keyboard icon in the menu bar:
+- **Preferences** — open the settings window
+- **Quit** — exit the app
+
+### Settings
+
+| Setting | Description |
+|---|---|
+| **Launch at login** | Auto-start when you log in |
+| **Position** | Overlay location: Bottom, Top, Center, or any corner |
+| **Font size** | Key cap text size (16–48pt) |
+| **Opacity** | Key cap transparency (30–100%) |
+| **Display time** | How long keystrokes stay visible (0.5–5.0s) |
+| **Key Groups** | Toggle each group on/off independently |
+
+### Key Groups
+
+- **Alphanumeric** — A–Z, 0–9, symbols
+- **Modifiers** — Command, Shift, Option, Control
+- **Function keys** — F1–F15
+- **Navigation** — Arrow keys, Home, End, Page Up/Down
+- **Special keys** — Return, Tab, Delete, Space, Escape
+- **Caps Lock** — Caps Lock toggle events
+
+## Architecture
+
+| File | Purpose |
+|---|---|
+| `KeystrokeApp.swift` | SwiftUI App entry point |
+| `AppDelegate.swift` | App lifecycle, Accessibility permission, menu bar setup |
+| `AppSettings.swift` | User preferences with UserDefaults persistence |
+| `KeyMonitor.swift` | CGEventTap + NSEvent global monitor for key capture |
+| `OverlayController.swift` | NSPanel floating window management |
+| `KeystrokeOverlay.swift` | SwiftUI key cap views and keystroke store |
+| `SettingsView.swift` | Preferences window UI |
+
+## Known Limitations
+
+- **Sandbox is disabled** — required for CGEventTap. Mac App Store distribution would need a special entitlement from Apple.
+- **No code signing** — on first launch, you may need to go to System Settings > Privacy & Security and click "Open Anyway".
+- **Function keys** — on MacBook keyboards, F1–F12 may require holding the `fn` key (depending on your system settings).
+
+## License
+
+MIT
