@@ -1,0 +1,25 @@
+# Xcode user data
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad
+
+# Build
+build/
+DerivedData/
+*.app
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Dependencies
+Pods/
+Carthage/Build/
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# Xcode workspace
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
