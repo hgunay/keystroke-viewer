@@ -3,11 +3,33 @@ import ServiceManagement
 
 struct SettingsView: View {
     @EnvironmentObject var settings: AppSettings
+
+    var body: some View {
+        TabView {
+            GeneralTab()
+                .environmentObject(settings)
+                .tabItem { Label("General", systemImage: "gear") }
+            AppearanceTab()
+                .environmentObject(settings)
+                .tabItem { Label("Appearance", systemImage: "paintbrush") }
+            KeysTab()
+                .environmentObject(settings)
+                .tabItem { Label("Keys", systemImage: "keyboard") }
+        }
+        .frame(width: 480, height: 500)
+        .padding()
+    }
+}
+
+// MARK: - General
+
+private struct GeneralTab: View {
+    @EnvironmentObject var settings: AppSettings
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
         Form {
-            Section("General") {
+            Section("Startup") {
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { newValue in
                         do {
@@ -21,36 +43,149 @@ struct SettingsView: View {
                         }
                     }
             }
+            Section {
+                Text("Eger tuslar gozukmuyorsa: System Settings -> Privacy & Security -> Accessibility menusunden Keystroke Viewer'a izin ver, sonra uygulamayi yeniden baslat.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - Appearance
+
+private struct AppearanceTab: View {
+    @EnvironmentObject var settings: AppSettings
+
+    var body: some View {
+        Form {
+            Section("Theme") {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 72))], spacing: 8) {
+                    ForEach(KeyTheme.presets) { theme in
+                        ThemePreview(theme: theme, isSelected: settings.selectedThemeId == theme.id)
+                            .onTapGesture { settings.selectedThemeId = theme.id }
+                    }
+                    ThemePreview(
+                        theme: KeyTheme(id: "custom", name: "Custom",
+                                        keyHex: settings.customKeyColorHex,
+                                        textHex: settings.customTextColorHex),
+                        isSelected: settings.selectedThemeId == "custom",
+                        isCustom: true
+                    )
+                    .onTapGesture { settings.selectedThemeId = "custom" }
+                }
+            }
+
+            if settings.selectedThemeId == "custom" {
+                Section("Custom Colors") {
+                    ColorPicker("Key background",
+                                selection: colorBinding(
+                                    get: { settings.customKeyColorHex },
+                                    set: { settings.customKeyColorHex = $0 }),
+                                supportsOpacity: false)
+                    ColorPicker("Key text",
+                                selection: colorBinding(
+                                    get: { settings.customTextColorHex },
+                                    set: { settings.customTextColorHex = $0 }),
+                                supportsOpacity: false)
+                }
+            }
+
             Section("Display") {
                 Picker("Position", selection: $settings.position) {
                     ForEach(OverlayPosition.allCases) { p in
                         Text(p.label).tag(p)
                     }
                 }
-                HStack {
-                    Text("Font size")
-                        .frame(width: 80, alignment: .leading)
-                    Slider(value: $settings.fontSize, in: 16...48, step: 1)
-                    Text("\(Int(settings.fontSize))")
-                        .monospacedDigit()
-                        .frame(width: 44, alignment: .trailing)
+                SliderRow(label: "Font size", value: $settings.fontSize,
+                          range: 16...48, step: 1, format: { "\(Int($0))" })
+                SliderRow(label: "Key size", value: $settings.keyScale,
+                          range: 0.5...2.0, step: 0.1, format: { String(format: "%.0f%%", $0 * 100) })
+                SliderRow(label: "Opacity", value: $settings.opacity,
+                          range: 0.3...1.0, format: { String(format: "%.0f%%", $0 * 100) })
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private func colorBinding(get: @escaping () -> String,
+                              set: @escaping (String) -> Void) -> Binding<CGColor> {
+        Binding(
+            get: {
+                let (r, g, b) = KeyTheme.rgb(from: get())
+                return CGColor(srgbRed: r, green: g, blue: b, alpha: 1)
+            },
+            set: { cgColor in
+                guard let srgb = cgColor.converted(
+                    to: CGColorSpace(name: CGColorSpace.sRGB)!,
+                    intent: .defaultIntent, options: nil
+                ), let c = srgb.components, c.count >= 3 else { return }
+                set(String(format: "#%02X%02X%02X",
+                           Int(c[0] * 255), Int(c[1] * 255), Int(c[2] * 255)))
+            }
+        )
+    }
+}
+
+// MARK: - Theme Preview
+
+private struct ThemePreview: View {
+    let theme: KeyTheme
+    let isSelected: Bool
+    var isCustom: Bool = false
+
+    var body: some View {
+        VStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(LinearGradient(
+                    colors: theme.gradientColors,
+                    startPoint: .top, endPoint: .bottom
+                ))
+                .frame(width: 44, height: 36)
+                .overlay {
+                    if isCustom {
+                        Image(systemName: "paintpalette")
+                            .font(.system(size: 14))
+                            .foregroundStyle(theme.textColor)
+                    } else {
+                        Text("A")
+                            .font(.system(size: 16, weight: .light))
+                            .foregroundStyle(theme.textColor)
+                    }
                 }
-                HStack {
-                    Text("Opacity")
-                        .frame(width: 80, alignment: .leading)
-                    Slider(value: $settings.opacity, in: 0.3...1.0)
-                    Text(String(format: "%.0f%%", settings.opacity * 100))
-                        .monospacedDigit()
-                        .frame(width: 44, alignment: .trailing)
+                .overlay {
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .strokeBorder(Color.accentColor, lineWidth: 2)
+                    }
                 }
-                HStack {
-                    Text("Display time")
-                        .frame(width: 80, alignment: .leading)
-                    Slider(value: $settings.displayTime, in: 0.5...5.0, step: 0.1)
-                    Text(String(format: "%.1fs", settings.displayTime))
-                        .monospacedDigit()
-                        .frame(width: 44, alignment: .trailing)
-                }
+                .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+
+            Text(theme.name)
+                .font(.caption2)
+                .foregroundStyle(isSelected ? .primary : .secondary)
+        }
+        .padding(6)
+        .background {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.accentColor.opacity(0.1))
+            }
+        }
+    }
+}
+
+// MARK: - Keys
+
+private struct KeysTab: View {
+    @EnvironmentObject var settings: AppSettings
+
+    var body: some View {
+        Form {
+            Section("Display Time") {
+                SliderRow(label: "Duration", value: $settings.displayTime,
+                          range: 0.5...5.0, step: 0.1, format: { String(format: "%.1fs", $0) })
             }
             Section("Key Groups") {
                 Toggle("Alphanumeric (A-Z, 0-9, symbols)", isOn: $settings.showAlphanumeric)
@@ -60,14 +195,32 @@ struct SettingsView: View {
                 Toggle("Special keys (Return, Tab, Delete, Space, Esc)", isOn: $settings.showSpecialKeys)
                 Toggle("Caps Lock", isOn: $settings.showCapsLock)
             }
-            Section {
-                Text("Eger tuslar gozukmuyorsa: System Settings -> Privacy & Security -> Accessibility menusunden Keystroke Viewer'a izin ver, sonra uygulamayi yeniden baslat.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
         }
         .formStyle(.grouped)
-        .frame(width: 460, height: 520)
-        .padding()
+    }
+}
+
+// MARK: - Slider Row
+
+private struct SliderRow: View {
+    let label: String
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    var step: Double? = nil
+    let format: (Double) -> String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .frame(width: 80, alignment: .leading)
+            if let step {
+                Slider(value: $value, in: range, step: step)
+            } else {
+                Slider(value: $value, in: range)
+            }
+            Text(format(value))
+                .monospacedDigit()
+                .frame(width: 44, alignment: .trailing)
+        }
     }
 }

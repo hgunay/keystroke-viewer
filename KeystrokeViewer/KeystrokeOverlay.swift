@@ -180,14 +180,16 @@ struct KeyCap: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 8 * settings.keyScale) {
             ForEach(Array(modifierKeys.enumerated()), id: \.offset) { _, mod in
                 SingleKey(
                     symbol: mod.symbol,
                     label: mod.name,
                     fontSize: settings.fontSize,
                     showIndicator: mod.name == "caps" ? capsLockOn : false,
-                    keyOpacity: settings.opacity
+                    keyOpacity: settings.opacity,
+                    keyScale: settings.keyScale,
+                    theme: settings.activeTheme
                 )
             }
             if !event.isModifierOnly, let ch = charKey {
@@ -195,7 +197,9 @@ struct KeyCap: View {
                     symbol: ch.symbol,
                     label: nil,
                     fontSize: settings.fontSize,
-                    keyOpacity: settings.opacity
+                    keyOpacity: settings.opacity,
+                    keyScale: settings.keyScale,
+                    theme: settings.activeTheme
                 )
             }
         }
@@ -208,14 +212,17 @@ struct SingleKey: View {
     let fontSize: CGFloat
     var showIndicator: Bool = false
     var keyOpacity: Double = 1.0
-    
+    var keyScale: Double = 1.0
+    var theme: KeyTheme = KeyTheme.presets[0]
+
     private var isCapsLock: Bool { label == "caps" }
     private var hasLabel:  Bool { label != nil }
 
-    private var glyphSize: CGFloat { hasLabel ? fontSize * 0.32 : fontSize * 0.55 }
-    private var labelSize: CGFloat { max(fontSize * 0.28, 8) }
+    private var scaledFontSize: CGFloat { fontSize * keyScale }
+    private var glyphSize: CGFloat { hasLabel ? scaledFontSize * 0.32 : scaledFontSize * 0.55 }
+    private var labelSize: CGFloat { max(scaledFontSize * 0.28, 8) }
 
-    private var keyUnit: CGFloat { 36 }
+    private var keyUnit: CGFloat { 36 * keyScale }
 
     private var widthRatio: CGFloat {
         if let label {
@@ -243,25 +250,25 @@ struct SingleKey: View {
         }
         .frame(width: keyUnit * widthRatio, height: keyUnit)
         .background(keyBackground)
-        .overlay(keyEdges)                 // hairline edge + top chamfer + bottom recess
-        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-        .shadow(color: .black.opacity(0.50), radius: 1.5, x: 0, y: 2)
-        .shadow(color: .black.opacity(0.35), radius: 7,   x: 0, y: 6)
+        .overlay(keyEdges)
+        .clipShape(RoundedRectangle(cornerRadius: 6 * keyScale, style: .continuous))
+        .shadow(color: .black.opacity(theme.isLight ? 0.15 : 0.50), radius: 1.5, x: 0, y: 2)
+        .shadow(color: .black.opacity(theme.isLight ? 0.10 : 0.35), radius: 7,   x: 0, y: 6)
         .opacity(keyOpacity)
     }
-    
+
     // MARK: – Variants
-    
+
     private var charCap: some View {
         Text(symbol)
             .font(.system(size: glyphSize, weight: .light, design: .default))
-            .foregroundStyle(Color(red: 0.91, green: 0.91, blue: 0.93))
+            .foregroundStyle(theme.textColor)
             .minimumScaleFactor(0.4)
             .lineLimit(1)
             .padding(.horizontal, 4)
             .padding(.vertical, 4)
     }
-    
+
     private var modifierCap: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center, spacing: 0) {
@@ -273,69 +280,68 @@ struct SingleKey: View {
                 Spacer(minLength: 0)
                 Text(symbol)
                     .font(.system(size: glyphSize, weight: .light))
-                    .foregroundStyle(Color(red: 0.91, green: 0.91, blue: 0.93))
+                    .foregroundStyle(theme.textColor)
             }
             .frame(minHeight: 12)
-            
+
             Spacer(minLength: 0)
-            
+
             Text(label ?? "")
                 .font(.system(size: labelSize, weight: .light))
-                .foregroundStyle(Color(red: 0.91, green: 0.91, blue: 0.93))
+                .foregroundStyle(theme.textColor)
                 .lineLimit(1)
         }
         .padding(EdgeInsets(top: 3, leading: 3, bottom: 4, trailing: 3))
     }
-    
+
     // MARK: – Visual recipe
-    
-    /// Matte near-black face with a subtle vertical gradient (chamfer-aware).
+
     private var keyBackground: some View {
         LinearGradient(
-            colors: [
-                Color(red: 0.165, green: 0.165, blue: 0.173),  // #2a2a2c
-                Color(red: 0.114, green: 0.114, blue: 0.122),  // #1d1d1f
-                Color(red: 0.086, green: 0.086, blue: 0.094),  // #161618
-            ],
+            colors: theme.gradientColors,
             startPoint: .top, endPoint: .bottom
         )
     }
-    
-    /// Hairline edge + top chamfer light + bottom recess shadow — drawn as overlays.
+
+    private var scaledCornerRadius: CGFloat { 6 * keyScale }
+
     private var keyEdges: some View {
         ZStack {
-            // Hairline border (~0.5px)
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.5)
-            
-            // Top chamfer: 1px white highlight along the top edge
+            RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous)
+                .strokeBorder(
+                    theme.isLight ? Color.black.opacity(0.12) : Color.white.opacity(0.09),
+                    lineWidth: 0.5
+                )
+
             VStack(spacing: 0) {
-                Rectangle().fill(Color.white.opacity(0.10)).frame(height: 1)
+                Rectangle()
+                    .fill(Color.white.opacity(theme.isLight ? 0.4 : 0.10))
+                    .frame(height: 1)
                 Spacer(minLength: 0)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
             .allowsHitTesting(false)
-            
-            // Bottom recess: 2px dark inner shadow at the bottom edge
+
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
-                Rectangle().fill(Color.black.opacity(0.55)).frame(height: 2)
+                Rectangle()
+                    .fill(Color.black.opacity(theme.isLight ? 0.15 : 0.55))
+                    .frame(height: 2)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
             .allowsHitTesting(false)
         }
     }
-    
-    /// Real LED — small bright green dot with halo, used on Caps Lock when active.
+
     private var capsLockLED: some View {
         Circle()
             .fill(
                 RadialGradient(
                     colors: [
-                        Color(red: 0.72, green: 1.00, blue: 0.81), // #b8ffcf core
-                        Color(red: 0.29, green: 0.89, blue: 0.45), // #4be372
-                        Color(red: 0.12, green: 0.65, blue: 0.29), // #1ea54a
-                        Color(red: 0.05, green: 0.42, blue: 0.18), // #0d6b2e edge
+                        Color(red: 0.72, green: 1.00, blue: 0.81),
+                        Color(red: 0.29, green: 0.89, blue: 0.45),
+                        Color(red: 0.12, green: 0.65, blue: 0.29),
+                        Color(red: 0.05, green: 0.42, blue: 0.18),
                     ],
                     center: UnitPoint(x: 0.35, y: 0.35),
                     startRadius: 0, endRadius: 6
