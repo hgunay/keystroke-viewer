@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3d3d40"></stop>
+      <stop offset="55%" stop-color="#2a2a2c"></stop>
+      <stop offset="100%" stop-color="#1a1a1c"></stop>
+    </linearGradient>
+    <radialGradient id="sheen" cx="50%" cy="-10%" r="70%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.22)"></stop>
+      <stop offset="60%" stop-color="rgba(255,255,255,0.04)"></stop>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"></stop>
+    </radialGradient>
+    <radialGradient id="softShade" cx="50%" cy="105%" r="60%">
+      <stop offset="0%" stop-color="rgba(0,0,0,0.55)"></stop>
+      <stop offset="100%" stop-color="rgba(0,0,0,0)"></stop>
+    </radialGradient>
+    <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5a5a5e"></stop>
+      <stop offset="50%" stop-color="#3e3e42"></stop>
+      <stop offset="100%" stop-color="#252528"></stop>
+    </linearGradient>
+    <linearGradient id="capInner" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.22)"></stop>
+      <stop offset="50%" stop-color="rgba(255,255,255,0)"></stop>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.35)"></stop>
+    </linearGradient>
+    <linearGradient id="glyph" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"></stop>
+      <stop offset="100%" stop-color="#e6e6ea"></stop>
+    </linearGradient>
+    <clipPath id="bodyClip">
+      <rect x="0" y="0" width="1024" height="1024" rx="230" ry="230"></rect>
+    </clipPath>
+  </defs>
+
+  
+  <rect x="0" y="0" width="1024" height="1024" rx="230" ry="230" fill="url(#bg)"></rect>
+  <rect x="0" y="0" width="1024" height="1024" rx="230" ry="230" fill="url(#softShade)"></rect>
+  <rect x="0" y="0" width="1024" height="1024" rx="230" ry="230" fill="url(#sheen)"></rect>
+
+  <g clip-path="url(#bodyClip)">
+    
+    <g opacity="0.34">
+      <rect x="212" y="202" width="460" height="460" rx="96" ry="96" fill="url(#cap)"></rect>
+      <rect x="212" y="202" width="460" height="460" rx="96" ry="96" fill="url(#capInner)"></rect>
+      <rect x="215" y="205" width="454" height="454" rx="93" ry="93" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="3"></rect>
+      <text x="442" y="500" text-anchor="middle" font-family="Nunito, &#39;SF Pro Rounded&#39;, system-ui, sans-serif" font-size="320" font-weight="700" letter-spacing="-6" fill="rgba(255,255,255,0.55)">K</text>
+    </g>
+    
+    <rect x="282" y="282" width="460" height="460" rx="96" ry="96" fill="url(#cap)"></rect>
+    <rect x="282" y="282" width="460" height="460" rx="96" ry="96" fill="url(#capInner)"></rect>
+    <rect x="285" y="285" width="454" height="454" rx="93" ry="93" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="3"></rect>
+    <text x="512" y="622" text-anchor="middle" font-family="Nunito, &#39;SF Pro Rounded&#39;, system-ui, sans-serif" font-size="340" font-weight="700" letter-spacing="-6" fill="url(#glyph)">K</text>
+  </g>
+
+  
+  <rect x="2" y="2" width="1020" height="1020" rx="228" ry="228" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="3"></rect>
+</svg>
