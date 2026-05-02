@@ -30,17 +30,29 @@ final class OverlayController {
         panel.hasShadow = false
         panel.ignoresMouseEvents = true
         panel.contentView = NSHostingView(rootView: KeystrokeOverlay(store: store))
-        panel.orderFrontRegardless()
+        if settings.overlayEnabled {
+            panel.orderFrontRegardless()
+        }
 
-        // Pozisyon değişikliklerini izle
         cancellable = settings.objectWillChange.sink { [weak self] _ in
-            DispatchQueue.main.async { self?.reposition() }
+            DispatchQueue.main.async {
+                self?.reposition()
+                self?.updateVisibility()
+            }
         }
         reposition()
     }
 
     func push(_ event: KeyEvent) {
         store.append(event)
+    }
+
+    private func updateVisibility() {
+        if settings.overlayEnabled {
+            panel.orderFrontRegardless()
+        } else {
+            panel.orderOut(nil)
+        }
     }
 
     private func reposition() {

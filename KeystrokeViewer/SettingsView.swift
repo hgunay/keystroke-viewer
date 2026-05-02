@@ -1,5 +1,6 @@
 import SwiftUI
 import ServiceManagement
+import AppKit
 
 struct SettingsView: View {
     @EnvironmentObject var settings: AppSettings
@@ -26,9 +27,50 @@ struct SettingsView: View {
 private struct GeneralTab: View {
     @EnvironmentObject var settings: AppSettings
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @StateObject private var recorder = ShortcutRecorderState()
 
     var body: some View {
         Form {
+            Section("Overlay") {
+                Toggle("Show overlay", isOn: $settings.overlayEnabled)
+            }
+            Section("Toggle Shortcut") {
+                HStack {
+                    Text(recorder.isRecording ? "Press shortcut…" : settings.toggleShortcutLabel)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(recorder.isRecording
+                                      ? Color.accentColor.opacity(0.15)
+                                      : Color.secondary.opacity(0.08))
+                        )
+                    Button(recorder.isRecording ? "Cancel" : "Record") {
+                        if recorder.isRecording {
+                            recorder.stopRecording()
+                        } else {
+                            recorder.startRecording { keyCode, mods, display in
+                                settings.toggleKeyCode = keyCode
+                                settings.toggleModifiers = mods
+                                settings.toggleKeyDisplay = display
+                            }
+                        }
+                    }
+                    .frame(width: 60)
+                    if settings.toggleKeyCode >= 0 && !recorder.isRecording {
+                        Button("Clear") {
+                            settings.toggleKeyCode = -1
+                            settings.toggleModifiers = 0
+                            settings.toggleKeyDisplay = ""
+                        }
+                        .foregroundStyle(.secondary)
+                    }
+                }
+                Text("Press Delete while recording to clear. At least one modifier key (⌃⌥⇧⌘) is required.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Section("Startup") {
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { newValue in
@@ -50,6 +92,7 @@ private struct GeneralTab: View {
             }
         }
         .formStyle(.grouped)
+        .onDisappear { recorder.stopRecording() }
     }
 }
 
@@ -198,6 +241,46 @@ private struct KeysTab: View {
         }
         .formStyle(.grouped)
     }
+}
+
+// MARK: - Shortcut Recorder
+
+private final class ShortcutRecorderState: ObservableObject {
+    @Published var isRecording = false
+    private var monitor: Any?
+    private var onComplete: ((Int, Int, String) -> Void)?
+
+    func startRecording(onComplete: @escaping (Int, Int, String) -> Void) {
+        self.onComplete = onComplete
+        isRecording = true
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            if event.keyCode == 53 {
+                self.stopRecording()
+                return nil
+            }
+            if event.keyCode == 51 {
+                self.onComplete?(-1, 0, "")
+                self.stopRecording()
+                return nil
+            }
+            let mods = event.modifierFlags.intersection([.control, .option, .shift, .command])
+            guard !mods.isEmpty else { return event }
+            let display = event.charactersIgnoringModifiers?.uppercased() ?? ""
+            self.onComplete?(Int(event.keyCode), Int(mods.rawValue), display)
+            self.stopRecording()
+            return nil
+        }
+    }
+
+    func stopRecording() {
+        isRecording = false
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        monitor = nil
+        onComplete = nil
+    }
+
+    deinit { stopRecording() }
 }
 
 // MARK: - Slider Row

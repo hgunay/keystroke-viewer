@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import AppKit
 
 // MARK: - Color Hex
 
@@ -155,6 +156,30 @@ final class AppSettings: ObservableObject {
     @Published var customTextColorHex: String {
         didSet { defaults.set(customTextColorHex, forKey: "customTextColorHex") }
     }
+    @Published var overlayEnabled: Bool {
+        didSet { defaults.set(overlayEnabled, forKey: "overlayEnabled") }
+    }
+    @Published var toggleKeyCode: Int {
+        didSet { defaults.set(toggleKeyCode, forKey: "toggleKeyCode") }
+    }
+    @Published var toggleModifiers: Int {
+        didSet { defaults.set(toggleModifiers, forKey: "toggleModifiers") }
+    }
+    @Published var toggleKeyDisplay: String {
+        didSet { defaults.set(toggleKeyDisplay, forKey: "toggleKeyDisplay") }
+    }
+
+    var toggleShortcutLabel: String {
+        guard toggleKeyCode >= 0 else { return "Not Set" }
+        var label = ""
+        let flags = NSEvent.ModifierFlags(rawValue: UInt(toggleModifiers))
+        if flags.contains(.control) { label += "⌃" }
+        if flags.contains(.option)  { label += "⌥" }
+        if flags.contains(.shift)   { label += "⇧" }
+        if flags.contains(.command) { label += "⌘" }
+        label += toggleKeyDisplay.uppercased()
+        return label
+    }
 
     var activeTheme: KeyTheme {
         if selectedThemeId == "custom" {
@@ -197,5 +222,19 @@ final class AppSettings: ObservableObject {
         self.selectedThemeId = defaults.string(forKey: "selectedThemeId") ?? "dark"
         self.customKeyColorHex = defaults.string(forKey: "customKeyColorHex") ?? "#1D1D1F"
         self.customTextColorHex = defaults.string(forKey: "customTextColorHex") ?? "#E8E8ED"
+
+        self.overlayEnabled = defaults.object(forKey: "overlayEnabled") as? Bool ?? true
+
+        if let kc = defaults.object(forKey: "toggleKeyCode") as? Int {
+            self.toggleKeyCode = kc
+        } else {
+            self.toggleKeyCode = 40 // K
+        }
+        if let mods = defaults.object(forKey: "toggleModifiers") as? Int {
+            self.toggleModifiers = mods
+        } else {
+            self.toggleModifiers = Int(NSEvent.ModifierFlags([.control, .option, .command]).rawValue)
+        }
+        self.toggleKeyDisplay = defaults.string(forKey: "toggleKeyDisplay") ?? "K"
     }
 }
