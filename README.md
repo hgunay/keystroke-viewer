@@ -1,6 +1,6 @@
 # KeystrokeViewer
 
-A macOS menu bar app that displays your keystrokes as a real-time overlay on screen. Inspired by Keystroke Pro, designed with MacBook Pro keyboard-style key caps.
+A macOS menu bar app that displays your keystrokes as a real-time overlay on screen, designed with MacBook Pro keyboard-style key caps.
 
 ![macOS](https://img.shields.io/badge/macOS-13%2B-blue)
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange)
