@@ -163,6 +163,30 @@ struct KeyTheme: Identifiable {
     }
 }
 
+// MARK: - Font Style
+
+enum FontStyle: String, CaseIterable, Identifiable {
+    case system, mono, rounded, serif
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .system:  return "System"
+        case .mono:    return "Mono"
+        case .rounded: return "Rounded"
+        case .serif:   return "Serif"
+        }
+    }
+
+    func font(size: CGFloat, weight: Font.Weight = .light) -> Font {
+        switch self {
+        case .system:  return .system(size: size, weight: weight, design: .default)
+        case .mono:    return .system(size: size, weight: weight, design: .monospaced)
+        case .rounded: return .system(size: size, weight: weight, design: .rounded)
+        case .serif:   return .system(size: size, weight: weight, design: .serif)
+        }
+    }
+}
+
 // MARK: - App Settings
 
 final class AppSettings: ObservableObject {
@@ -230,6 +254,13 @@ final class AppSettings: ObservableObject {
     }
     @Published var displayOnAllScreens: Bool {
         didSet { defaults.set(displayOnAllScreens, forKey: "displayOnAllScreens") }
+    }
+    @Published var fontStyle: String {
+        didSet { defaults.set(fontStyle, forKey: "fontStyle") }
+    }
+
+    var resolvedFontStyle: FontStyle {
+        FontStyle(rawValue: fontStyle) ?? .system
     }
 
     var toggleShortcutLabel: String {
@@ -302,5 +333,6 @@ final class AppSettings: ObservableObject {
         self.animationStyle = defaults.string(forKey: "animationStyle") ?? "fade"
         self.hideInSecureFields = defaults.object(forKey: "hideInSecureFields") as? Bool ?? true
         self.displayOnAllScreens = defaults.object(forKey: "displayOnAllScreens") as? Bool ?? false
+        self.fontStyle = defaults.string(forKey: "fontStyle") ?? "system"
     }
 }

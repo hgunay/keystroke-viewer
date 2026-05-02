@@ -21,6 +21,7 @@ A macOS menu bar app that displays your keystrokes as a real-time overlay on scr
 - **Configurable key groups** — toggle visibility for alphanumeric, modifiers, function keys, navigation, special keys, and Caps Lock independently
 - **Multi-monitor support** — show overlay on all screens or main screen only
 - **7 overlay positions** — top, bottom, center, and all four corners
+- **4 font styles** — System, Mono, Rounded, Serif
 - **Adjustable appearance** — font size, key scale, opacity, and display duration
 - **Launch at login** — optional auto-start via macOS Login Items
 - **Menu bar app** — runs as a lightweight tray icon, no Dock clutter
@@ -84,6 +85,7 @@ Settings are organized in three tabs:
 | **Animation** | Keystroke appear/disappear style: None, Fade, Slide Up, Scale, Bounce |
 | **Position** | Overlay location: Bottom, Top, Center, or any corner |
 | **All screens** | Show overlay on every connected display simultaneously |
+| **Font** | System (SF Pro), Mono (SF Mono), Rounded (SF Rounded), Serif (New York) |
 | **Font size** | Key cap text size (16–48pt) |
 | **Key size** | Key cap scale (50–200%) |
 | **Opacity** | Key cap transparency (30–100%) |

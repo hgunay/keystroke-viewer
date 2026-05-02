@@ -205,7 +205,8 @@ struct KeyCap: View {
                     showIndicator: mod.name == "caps" ? capsLockOn : false,
                     keyOpacity: settings.opacity,
                     keyScale: settings.keyScale,
-                    theme: settings.activeTheme
+                    theme: settings.activeTheme,
+                    fontStyle: settings.resolvedFontStyle
                 )
             }
             if !event.isModifierOnly, let ch = charKey {
@@ -215,7 +216,8 @@ struct KeyCap: View {
                     fontSize: settings.fontSize,
                     keyOpacity: settings.opacity,
                     keyScale: settings.keyScale,
-                    theme: settings.activeTheme
+                    theme: settings.activeTheme,
+                    fontStyle: settings.resolvedFontStyle
                 )
             }
         }
@@ -230,6 +232,7 @@ struct SingleKey: View {
     var keyOpacity: Double = 1.0
     var keyScale: Double = 1.0
     var theme: KeyTheme = KeyTheme.presets[0]
+    var fontStyle: FontStyle = .system
 
     private var isCapsLock: Bool { label == "caps" }
     private var hasLabel:  Bool { label != nil }
@@ -277,7 +280,7 @@ struct SingleKey: View {
 
     private var charCap: some View {
         Text(symbol)
-            .font(.system(size: glyphSize, weight: .light, design: .default))
+            .font(fontStyle.font(size: glyphSize))
             .foregroundStyle(theme.textColor)
             .minimumScaleFactor(0.4)
             .lineLimit(1)
@@ -295,7 +298,7 @@ struct SingleKey: View {
                 }
                 Spacer(minLength: 0)
                 Text(symbol)
-                    .font(.system(size: glyphSize, weight: .light))
+                    .font(fontStyle.font(size: glyphSize))
                     .foregroundStyle(theme.textColor)
             }
             .frame(minHeight: 12)
@@ -303,7 +306,7 @@ struct SingleKey: View {
             Spacer(minLength: 0)
 
             Text(label ?? "")
-                .font(.system(size: labelSize, weight: .light))
+                .font(fontStyle.font(size: labelSize))
                 .foregroundStyle(theme.textColor)
                 .lineLimit(1)
         }
