@@ -16,6 +16,14 @@ final class KeystrokeStore: ObservableObject {
         self.settings = settings
     }
 
+    private var resolvedStyle: AnimationStyle {
+        AnimationStyle(rawValue: settings.animationStyle) ?? .fade
+    }
+
+    var activeTransition: AnyTransition {
+        resolvedStyle.transition
+    }
+
     private static let fKeyCodes: Set<UInt16> = [
         0x7A, 0x78, 0x63, 0x76, 0x60, 0x61, 0x62, 0x64,
         0x65, 0x6D, 0x67, 0x6F, 0x69, 0x6B, 0x71
@@ -59,7 +67,9 @@ final class KeystrokeStore: ObservableObject {
             pendingModifier = event
 
             if let lastIdx = visible.indices.last, visible[lastIdx].isModifierOnly {
-                visible.remove(at: lastIdx)
+                withAnimation(resolvedStyle.entranceAnimation) {
+                    visible.remove(at: lastIdx)
+                }
             }
 
             let work = DispatchWorkItem { [weak self] in
@@ -78,9 +88,11 @@ final class KeystrokeStore: ObservableObject {
     }
 
     private func push(_ event: KeyEvent) {
-        visible.append(event)
-        if visible.count > 3 {
-            visible.removeFirst(visible.count - 3)
+        withAnimation(resolvedStyle.entranceAnimation) {
+            visible.append(event)
+            if visible.count > 3 {
+                visible.removeFirst(visible.count - 3)
+            }
         }
         scheduleHide()
     }
@@ -88,7 +100,10 @@ final class KeystrokeStore: ObservableObject {
     private func scheduleHide() {
         hideWork?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            self?.visible.removeAll()
+            guard let self else { return }
+            withAnimation(self.resolvedStyle.exitAnimation) {
+                self.visible.removeAll()
+            }
         }
         hideWork = work
         DispatchQueue.main.asyncAfter(
@@ -107,6 +122,7 @@ struct KeystrokeOverlay: View {
                 HStack(spacing: 14) {
                     ForEach(store.visible) { event in
                         KeyCap(event: event, settings: store.settings)
+                            .transition(store.activeTransition)
                     }
                 }
             }

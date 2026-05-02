@@ -135,6 +135,14 @@ private struct AppearanceTab: View {
                 }
             }
 
+            Section("Animation") {
+                Picker("Style", selection: $settings.animationStyle) {
+                    ForEach(AnimationStyle.allCases) { style in
+                        Text(style.label).tag(style.rawValue)
+                    }
+                }
+            }
+
             Section("Display") {
                 Picker("Position", selection: $settings.position) {
                     ForEach(OverlayPosition.allCases) { p in

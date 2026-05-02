@@ -36,6 +36,60 @@ enum OverlayPosition: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - Animation Style
+
+enum AnimationStyle: String, CaseIterable, Identifiable {
+    case none, fade, slideUp, scale, bounce
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .none:    return "None"
+        case .fade:    return "Fade"
+        case .slideUp: return "Slide Up"
+        case .scale:   return "Scale"
+        case .bounce:  return "Bounce"
+        }
+    }
+
+    var transition: AnyTransition {
+        switch self {
+        case .none:
+            return .identity
+        case .fade:
+            return .opacity
+        case .slideUp:
+            return .asymmetric(
+                insertion: .move(edge: .bottom).combined(with: .opacity),
+                removal: .opacity)
+        case .scale:
+            return .asymmetric(
+                insertion: .scale(scale: 0.5).combined(with: .opacity),
+                removal: .opacity)
+        case .bounce:
+            return .asymmetric(
+                insertion: .scale(scale: 0.3).combined(with: .opacity),
+                removal: .opacity)
+        }
+    }
+
+    var entranceAnimation: Animation? {
+        switch self {
+        case .none:    return nil
+        case .fade:    return .easeOut(duration: 0.15)
+        case .slideUp: return .easeOut(duration: 0.2)
+        case .scale:   return .spring(response: 0.25, dampingFraction: 0.7)
+        case .bounce:  return .spring(response: 0.35, dampingFraction: 0.4)
+        }
+    }
+
+    var exitAnimation: Animation? {
+        switch self {
+        case .none: return nil
+        default:    return .easeIn(duration: 0.2)
+        }
+    }
+}
+
 // MARK: - Theme
 
 struct KeyTheme: Identifiable {
@@ -168,6 +222,9 @@ final class AppSettings: ObservableObject {
     @Published var toggleKeyDisplay: String {
         didSet { defaults.set(toggleKeyDisplay, forKey: "toggleKeyDisplay") }
     }
+    @Published var animationStyle: String {
+        didSet { defaults.set(animationStyle, forKey: "animationStyle") }
+    }
 
     var toggleShortcutLabel: String {
         guard toggleKeyCode >= 0 else { return "Not Set" }
@@ -236,5 +293,6 @@ final class AppSettings: ObservableObject {
             self.toggleModifiers = Int(NSEvent.ModifierFlags([.control, .option, .command]).rawValue)
         }
         self.toggleKeyDisplay = defaults.string(forKey: "toggleKeyDisplay") ?? "K"
+        self.animationStyle = defaults.string(forKey: "animationStyle") ?? "fade"
     }
 }
