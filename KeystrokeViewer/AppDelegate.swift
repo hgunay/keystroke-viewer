@@ -94,6 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.overlay?.push(event)
             }
         }
+        monitor?.settings = settings
         monitor?.start()
         Self.logger.info("Key monitor started")
     }

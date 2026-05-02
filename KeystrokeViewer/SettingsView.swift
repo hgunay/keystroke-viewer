@@ -85,6 +85,9 @@ private struct GeneralTab: View {
                         }
                     }
             }
+            Section("Privacy") {
+                Toggle("Hide keystrokes in password fields", isOn: $settings.hideInSecureFields)
+            }
             Section {
                 Text("Eger tuslar gozukmuyorsa: System Settings -> Privacy & Security -> Accessibility menusunden Keystroke Viewer'a izin ver, sonra uygulamayi yeniden baslat.")
                     .font(.caption)

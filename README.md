@@ -14,9 +14,13 @@ A macOS menu bar app that displays your keystrokes as a real-time overlay on scr
 - **Key repeat filtering** — holding a key only shows it once
 - **Function key support** — F1 through F15
 - **Case-aware display** — uppercase when Caps Lock is on, lowercase when off
+- **6 built-in themes** — Dark, Light, Midnight, Ocean, Rosé, Forest — plus custom color picker
+- **5 animation styles** — None, Fade, Slide Up, Scale, Bounce
+- **Global toggle shortcut** — show/hide overlay from any app (default: ⌃⌥⌘K)
+- **Password field detection** — automatically hides keystrokes when typing in secure fields
 - **Configurable key groups** — toggle visibility for alphanumeric, modifiers, function keys, navigation, special keys, and Caps Lock independently
 - **7 overlay positions** — top, bottom, center, and all four corners
-- **Adjustable appearance** — font size, opacity, and display duration
+- **Adjustable appearance** — font size, key scale, opacity, and display duration
 - **Launch at login** — optional auto-start via macOS Login Items
 - **Menu bar app** — runs as a lightweight tray icon, no Dock clutter
 
@@ -48,19 +52,45 @@ A macOS menu bar app that displays your keystrokes as a real-time overlay on scr
 
 ### Menu Bar
 
-Right-click (or click) the keyboard icon in the menu bar:
+Click the keyboard icon in the menu bar:
+- **Show Overlay** — toggle keystroke display on/off
 - **Preferences** — open the settings window
 - **Quit** — exit the app
 
+### Global Shortcut
+
+Press **⌃⌥⌘K** (Control+Option+Command+K) to toggle the overlay from any app. You can customize or clear this shortcut in Preferences > General.
+
 ### Settings
+
+Settings are organized in three tabs:
+
+#### General
 
 | Setting | Description |
 |---|---|
+| **Show overlay** | Toggle keystroke display on/off |
+| **Toggle shortcut** | Record a custom global hotkey to show/hide the overlay |
 | **Launch at login** | Auto-start when you log in |
+| **Hide in password fields** | Automatically suppress keystrokes when a secure input field is active |
+
+#### Appearance
+
+| Setting | Description |
+|---|---|
+| **Theme** | Choose from 6 preset themes or create a custom color scheme |
+| **Custom colors** | Pick key background and text colors (when Custom theme is selected) |
+| **Animation** | Keystroke appear/disappear style: None, Fade, Slide Up, Scale, Bounce |
 | **Position** | Overlay location: Bottom, Top, Center, or any corner |
 | **Font size** | Key cap text size (16–48pt) |
+| **Key size** | Key cap scale (50–200%) |
 | **Opacity** | Key cap transparency (30–100%) |
-| **Display time** | How long keystrokes stay visible (0.5–5.0s) |
+
+#### Keys
+
+| Setting | Description |
+|---|---|
+| **Duration** | How long keystrokes stay visible (0.5–5.0s) |
 | **Key Groups** | Toggle each group on/off independently |
 
 ### Key Groups
@@ -77,12 +107,12 @@ Right-click (or click) the keyboard icon in the menu bar:
 | File | Purpose |
 |---|---|
 | `KeystrokeApp.swift` | SwiftUI App entry point |
-| `AppDelegate.swift` | App lifecycle, Accessibility permission, menu bar setup |
-| `AppSettings.swift` | User preferences with UserDefaults persistence |
-| `KeyMonitor.swift` | CGEventTap + NSEvent global monitor for key capture |
-| `OverlayController.swift` | NSPanel floating window management |
-| `KeystrokeOverlay.swift` | SwiftUI key cap views and keystroke store |
-| `SettingsView.swift` | Preferences window UI |
+| `AppDelegate.swift` | App lifecycle, Accessibility permission, menu bar, global hotkey |
+| `AppSettings.swift` | User preferences, theme system, animation styles |
+| `KeyMonitor.swift` | CGEventTap + NSEvent global monitor for key capture, secure input detection |
+| `OverlayController.swift` | NSPanel floating window management, visibility control |
+| `KeystrokeOverlay.swift` | SwiftUI key cap views, keystroke store, animated transitions |
+| `SettingsView.swift` | Tabbed preferences window (General, Appearance, Keys) |
 
 ## Known Limitations
 

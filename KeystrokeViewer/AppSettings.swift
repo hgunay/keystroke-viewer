@@ -225,6 +225,9 @@ final class AppSettings: ObservableObject {
     @Published var animationStyle: String {
         didSet { defaults.set(animationStyle, forKey: "animationStyle") }
     }
+    @Published var hideInSecureFields: Bool {
+        didSet { defaults.set(hideInSecureFields, forKey: "hideInSecureFields") }
+    }
 
     var toggleShortcutLabel: String {
         guard toggleKeyCode >= 0 else { return "Not Set" }
@@ -294,5 +297,6 @@ final class AppSettings: ObservableObject {
         }
         self.toggleKeyDisplay = defaults.string(forKey: "toggleKeyDisplay") ?? "K"
         self.animationStyle = defaults.string(forKey: "animationStyle") ?? "fade"
+        self.hideInSecureFields = defaults.object(forKey: "hideInSecureFields") as? Bool ?? true
     }
 }

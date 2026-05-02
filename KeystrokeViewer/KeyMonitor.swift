@@ -1,4 +1,9 @@
 import Cocoa
+import Carbon.HIToolbox
+
+private func isSecureInputActive() -> Bool {
+    IsSecureEventInputEnabled()
+}
 
 struct KeyEvent: Identifiable {
     let id = UUID()
@@ -18,6 +23,7 @@ final class KeyMonitor {
     private var lastCapsState = false
     private var lastCapsFireTime: Date = .distantPast
     private let onKey: (KeyEvent) -> Void
+    weak var settings: AppSettings?
 
     init(onKey: @escaping (KeyEvent) -> Void) {
         self.onKey = onKey
@@ -41,6 +47,13 @@ final class KeyMonitor {
             }
 
             guard type == .keyDown || type == .flagsChanged else {
+                return Unmanaged.passUnretained(cgEvent)
+            }
+
+            if type == .keyDown,
+               let s = me.settings,
+               s.hideInSecureFields,
+               isSecureInputActive() {
                 return Unmanaged.passUnretained(cgEvent)
             }
 
