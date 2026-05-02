@@ -255,6 +255,9 @@ final class AppSettings: ObservableObject {
     @Published var displayOnAllScreens: Bool {
         didSet { defaults.set(displayOnAllScreens, forKey: "displayOnAllScreens") }
     }
+    @Published var showMouseClicks: Bool {
+        didSet { defaults.set(showMouseClicks, forKey: "showMouseClicks") }
+    }
     @Published var fontStyle: String {
         didSet { defaults.set(fontStyle, forKey: "fontStyle") }
     }
@@ -333,6 +336,7 @@ final class AppSettings: ObservableObject {
         self.animationStyle = defaults.string(forKey: "animationStyle") ?? "fade"
         self.hideInSecureFields = defaults.object(forKey: "hideInSecureFields") as? Bool ?? true
         self.displayOnAllScreens = defaults.object(forKey: "displayOnAllScreens") as? Bool ?? false
+        self.showMouseClicks = defaults.object(forKey: "showMouseClicks") as? Bool ?? false
         self.fontStyle = defaults.string(forKey: "fontStyle") ?? "system"
     }
 }

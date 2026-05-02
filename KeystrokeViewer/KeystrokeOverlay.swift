@@ -371,3 +371,84 @@ struct SingleKey: View {
             .shadow(color: Color(red: 0.29, green: 0.89, blue: 0.45).opacity(0.45), radius: 9)
     }
 }
+
+// MARK: - Click Visualization
+
+enum ClickButton {
+    case left, right, other
+}
+
+struct ClickEvent: Identifiable {
+    let id = UUID()
+    let location: CGPoint
+    let button: ClickButton
+    let timestamp: Date
+}
+
+final class ClickStore: ObservableObject {
+    @Published var clicks: [ClickEvent] = []
+
+    func append(_ click: ClickEvent) {
+        clicks.append(click)
+        let clickId = click.id
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            self?.clicks.removeAll { $0.id == clickId }
+        }
+    }
+}
+
+struct ClickOverlayView: View {
+    @ObservedObject var store: ClickStore
+    let screenFrame: NSRect
+
+    private var visibleClicks: [ClickEvent] {
+        store.clicks.filter { screenFrame.contains($0.location) }
+    }
+
+    var body: some View {
+        ZStack {
+            ForEach(visibleClicks) { click in
+                ClickRipple(button: click.button)
+                    .position(
+                        x: click.location.x - screenFrame.origin.x,
+                        y: screenFrame.height - (click.location.y - screenFrame.origin.y)
+                    )
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct ClickRipple: View {
+    let button: ClickButton
+    @State private var animate = false
+
+    private var color: Color {
+        switch button {
+        case .left:  return .white
+        case .right: return Color(red: 0.5, green: 0.7, blue: 1.0)
+        case .other: return Color(red: 1.0, green: 0.8, blue: 0.4)
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(color.opacity(animate ? 0 : 0.4), lineWidth: animate ? 0.5 : 2)
+                .frame(width: animate ? 50 : 8, height: animate ? 50 : 8)
+
+            Circle()
+                .stroke(color.opacity(animate ? 0 : 0.6), lineWidth: animate ? 1 : 2)
+                .frame(width: animate ? 30 : 6, height: animate ? 30 : 6)
+
+            Circle()
+                .fill(color.opacity(animate ? 0 : 0.8))
+                .frame(width: animate ? 2 : 8, height: animate ? 2 : 8)
+        }
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.5)) {
+                animate = true
+            }
+        }
+    }
+}

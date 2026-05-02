@@ -85,6 +85,9 @@ private struct GeneralTab: View {
                         }
                     }
             }
+            Section("Mouse") {
+                Toggle("Show mouse click animation", isOn: $settings.showMouseClicks)
+            }
             Section("Privacy") {
                 Toggle("Hide keystrokes in password fields", isOn: $settings.hideInSecureFields)
             }
