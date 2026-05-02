@@ -152,6 +152,7 @@ private struct AppearanceTab: View {
                         Text(p.label).tag(p)
                     }
                 }
+                Toggle("Show on all screens", isOn: $settings.displayOnAllScreens)
                 SliderRow(label: "Font size", value: $settings.fontSize,
                           range: 16...48, step: 1, format: { "\(Int($0))" })
                 SliderRow(label: "Key size", value: $settings.keyScale,
