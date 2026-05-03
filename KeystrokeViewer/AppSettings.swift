@@ -32,6 +32,32 @@ enum ScreenDisplayMode: String, CaseIterable, Identifiable {
     }
 }
 
+enum BackgroundBarStyle: String, CaseIterable, Identifiable {
+    case material, solid, themeMatch
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .material:   return "Frosted Glass"
+        case .solid:      return "Solid Color"
+        case .themeMatch: return "Match Theme"
+        }
+    }
+}
+
+enum BarMaterialIntensity: String, CaseIterable, Identifiable {
+    case ultraThin, thin, regular, thick, ultraThick
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .ultraThin:  return "Ultra Thin"
+        case .thin:       return "Thin"
+        case .regular:    return "Regular"
+        case .thick:      return "Thick"
+        case .ultraThick: return "Ultra Thick"
+        }
+    }
+}
+
 enum OverlayPosition: String, CaseIterable, Identifiable {
     case bottom, top, center
     case topLeft, topRight, bottomLeft, bottomRight
@@ -115,6 +141,7 @@ struct KeyTheme: Identifiable {
     let textG: Double
     let textB: Double
     let isLight: Bool
+    let isGlass: Bool
 
     var keyColor: Color { Color(red: keyR, green: keyG, blue: keyB) }
     var textColor: Color { Color(red: textR, green: textG, blue: textB) }
@@ -144,7 +171,7 @@ struct KeyTheme: Identifiable {
         )
     }
 
-    init(id: String, name: String, keyHex: String, textHex: String, isLight: Bool = false) {
+    init(id: String, name: String, keyHex: String, textHex: String, isLight: Bool = false, isGlass: Bool = false) {
         self.id = id
         self.name = name
         let k = Self.rgb(from: keyHex)
@@ -152,14 +179,16 @@ struct KeyTheme: Identifiable {
         let t = Self.rgb(from: textHex)
         self.textR = t.r; self.textG = t.g; self.textB = t.b
         self.isLight = isLight
+        self.isGlass = isGlass
     }
 
     init(id: String, name: String, keyR: Double, keyG: Double, keyB: Double,
-         textR: Double, textG: Double, textB: Double, isLight: Bool) {
+         textR: Double, textG: Double, textB: Double, isLight: Bool, isGlass: Bool = false) {
         self.id = id; self.name = name
         self.keyR = keyR; self.keyG = keyG; self.keyB = keyB
         self.textR = textR; self.textG = textG; self.textB = textB
         self.isLight = isLight
+        self.isGlass = isGlass
     }
 
     static let presets: [KeyTheme] = [
@@ -169,6 +198,15 @@ struct KeyTheme: Identifiable {
         KeyTheme(id: "ocean", name: "Ocean", keyHex: "#0F2933", textHex: "#99EBE0"),
         KeyTheme(id: "rose", name: "Rosé", keyHex: "#381A24", textHex: "#FFC7D6"),
         KeyTheme(id: "forest", name: "Forest", keyHex: "#142E1A", textHex: "#B3F0B8"),
+        KeyTheme(id: "dracula", name: "Dracula", keyHex: "#282A36", textHex: "#F8F8F2"),
+        KeyTheme(id: "nord", name: "Nord", keyHex: "#2E3440", textHex: "#ECEFF4"),
+        KeyTheme(id: "solarized", name: "Solarized", keyHex: "#002B36", textHex: "#839496"),
+        KeyTheme(id: "monokai", name: "Monokai", keyHex: "#272822", textHex: "#F8F8F2"),
+        KeyTheme(id: "catppuccin", name: "Catppuccin", keyHex: "#1E1E2E", textHex: "#CDD6F4"),
+        KeyTheme(id: "github", name: "GitHub", keyHex: "#0D1117", textHex: "#C9D1D9"),
+        KeyTheme(id: "oneDark", name: "One Dark", keyHex: "#282C34", textHex: "#ABB2BF"),
+        KeyTheme(id: "glassDark", name: "Glass", keyHex: "#1A1A1A", textHex: "#FFFFFF", isGlass: true),
+        KeyTheme(id: "glassLight", name: "Glass Light", keyHex: "#FFFFFF", textHex: "#1A1A1A", isLight: true, isGlass: true),
     ]
 
     static func preset(for id: String) -> KeyTheme? {
@@ -501,6 +539,21 @@ final class AppSettings: ObservableObject {
     @Published var compactCombos: Bool {
         didSet { defaults.set(compactCombos, forKey: "compactCombos") }
     }
+    @Published var showBackgroundBar: Bool {
+        didSet { defaults.set(showBackgroundBar, forKey: "showBackgroundBar") }
+    }
+    @Published var backgroundBarStyle: String {
+        didSet { defaults.set(backgroundBarStyle, forKey: "backgroundBarStyle") }
+    }
+    @Published var backgroundBarColorHex: String {
+        didSet { defaults.set(backgroundBarColorHex, forKey: "backgroundBarColorHex") }
+    }
+    @Published var backgroundBarOpacity: Double {
+        didSet { defaults.set(backgroundBarOpacity, forKey: "backgroundBarOpacity") }
+    }
+    @Published var backgroundBarMaterial: String {
+        didSet { defaults.set(backgroundBarMaterial, forKey: "backgroundBarMaterial") }
+    }
 
     var resolvedFontStyle: FontStyle {
         FontStyle(rawValue: fontStyle) ?? .system
@@ -508,6 +561,14 @@ final class AppSettings: ObservableObject {
 
     var resolvedScreenMode: ScreenDisplayMode {
         ScreenDisplayMode(rawValue: screenDisplayMode) ?? .mainOnly
+    }
+
+    var resolvedBarStyle: BackgroundBarStyle {
+        BackgroundBarStyle(rawValue: backgroundBarStyle) ?? .material
+    }
+
+    var resolvedBarMaterial: BarMaterialIntensity {
+        BarMaterialIntensity(rawValue: backgroundBarMaterial) ?? .ultraThin
     }
 
     var toggleShortcutLabel: String {
@@ -583,6 +644,11 @@ final class AppSettings: ObservableObject {
         soundOutputDeviceUID = ""
         fontStyle = "system"
         compactCombos = true
+        showBackgroundBar = false
+        backgroundBarStyle = BackgroundBarStyle.material.rawValue
+        backgroundBarColorHex = "#000000"
+        backgroundBarOpacity = 0.8
+        backgroundBarMaterial = BarMaterialIntensity.ultraThin.rawValue
     }
 
     var activeTheme: KeyTheme {
@@ -657,5 +723,11 @@ final class AppSettings: ObservableObject {
         self.soundOutputDeviceUID = defaults.string(forKey: "soundOutputDeviceUID") ?? ""
         self.fontStyle = defaults.string(forKey: "fontStyle") ?? "system"
         self.compactCombos = defaults.object(forKey: "compactCombos") as? Bool ?? true
+        self.showBackgroundBar = defaults.object(forKey: "showBackgroundBar") as? Bool ?? false
+        self.backgroundBarStyle = defaults.string(forKey: "backgroundBarStyle") ?? BackgroundBarStyle.material.rawValue
+        self.backgroundBarColorHex = defaults.string(forKey: "backgroundBarColorHex") ?? "#000000"
+        let bbo = defaults.double(forKey: "backgroundBarOpacity")
+        self.backgroundBarOpacity = bbo > 0 ? bbo : 0.8
+        self.backgroundBarMaterial = defaults.string(forKey: "backgroundBarMaterial") ?? BarMaterialIntensity.ultraThin.rawValue
     }
 }

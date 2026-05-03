@@ -238,6 +238,32 @@ private struct AppearanceTab: View {
 
             Section("Display") {
                 Toggle("Compact modifier combos", isOn: $settings.compactCombos)
+                Toggle("Background bar", isOn: $settings.showBackgroundBar)
+                if settings.showBackgroundBar {
+                    Picker("Bar style", selection: $settings.backgroundBarStyle) {
+                        ForEach(BackgroundBarStyle.allCases) { style in
+                            Text(style.label).tag(style.rawValue)
+                        }
+                    }
+                    if settings.resolvedBarStyle == .material {
+                        Picker("Blur intensity", selection: $settings.backgroundBarMaterial) {
+                            ForEach(BarMaterialIntensity.allCases) { intensity in
+                                Text(intensity.label).tag(intensity.rawValue)
+                            }
+                        }
+                    }
+                    if settings.resolvedBarStyle == .solid || settings.resolvedBarStyle == .material {
+                        ColorPicker("Bar color",
+                                    selection: colorBinding(
+                                        get: { settings.backgroundBarColorHex },
+                                        set: { settings.backgroundBarColorHex = $0 }),
+                                    supportsOpacity: false)
+                    }
+                    SliderRow(label: settings.resolvedBarStyle == .material ? "Tint" : "Opacity",
+                              value: $settings.backgroundBarOpacity,
+                              range: 0.1...1.0,
+                              format: { String(format: "%.0f%%", $0 * 100) })
+                }
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Position")
                         .font(.body)
@@ -293,31 +319,43 @@ private struct ThemePreview: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(LinearGradient(
-                    colors: theme.gradientColors,
-                    startPoint: .top, endPoint: .bottom
-                ))
-                .frame(width: 44, height: 36)
-                .overlay {
-                    if isCustom {
-                        Image(systemName: "paintpalette")
-                            .font(.system(size: 14))
-                            .foregroundStyle(theme.textColor)
-                    } else {
-                        Text("A")
-                            .font(.system(size: 16, weight: .light))
-                            .foregroundStyle(theme.textColor)
-                    }
-                }
-                .overlay {
+            ZStack {
+                if theme.isGlass {
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .strokeBorder(
-                            isSelected ? Color.accentColor : (isHovered ? Color.accentColor.opacity(0.5) : .clear),
-                            lineWidth: 2
-                        )
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 44, height: 36)
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(theme.keyColor.opacity(0.15))
+                        .frame(width: 44, height: 36)
+                } else {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(LinearGradient(
+                            colors: theme.gradientColors,
+                            startPoint: .top, endPoint: .bottom
+                        ))
+                        .frame(width: 44, height: 36)
                 }
-                .shadow(color: .black.opacity(isHovered ? 0.35 : 0.2), radius: isHovered ? 4 : 2, y: isHovered ? 2 : 1)
+            }
+            .frame(width: 44, height: 36)
+            .overlay {
+                if isCustom {
+                    Image(systemName: "paintpalette")
+                        .font(.system(size: 14))
+                        .foregroundStyle(theme.textColor)
+                } else {
+                    Text("A")
+                        .font(.system(size: 16, weight: .light))
+                        .foregroundStyle(theme.textColor)
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .strokeBorder(
+                        isSelected ? Color.accentColor : (isHovered ? Color.accentColor.opacity(0.5) : .clear),
+                        lineWidth: 2
+                    )
+            }
+            .shadow(color: .black.opacity(isHovered ? 0.35 : 0.2), radius: isHovered ? 4 : 2, y: isHovered ? 2 : 1)
 
             Text(theme.name)
                 .font(.caption2)
@@ -588,13 +626,25 @@ private struct ComboPreviewKey: View {
         }
         .padding(.horizontal, 10 * settings.keyScale)
         .frame(height: keyUnit)
-        .background(
-            LinearGradient(colors: theme.gradientColors, startPoint: .top, endPoint: .bottom)
-        )
+        .background(comboBackground)
         .clipShape(RoundedRectangle(cornerRadius: cr, style: .continuous))
-        .shadow(color: .black.opacity(theme.isLight ? 0.15 : 0.50), radius: 1.5, x: 0, y: 2)
-        .shadow(color: .black.opacity(theme.isLight ? 0.10 : 0.35), radius: 7, x: 0, y: 6)
+        .shadow(color: .black.opacity(theme.isGlass ? 0.15 : (theme.isLight ? 0.15 : 0.50)),
+                radius: theme.isGlass ? 6 : 1.5, x: 0, y: theme.isGlass ? 3 : 2)
+        .shadow(color: .black.opacity(theme.isGlass ? 0.08 : (theme.isLight ? 0.10 : 0.35)),
+                radius: theme.isGlass ? 12 : 7, x: 0, y: 6)
         .opacity(settings.opacity)
+    }
+
+    @ViewBuilder
+    private var comboBackground: some View {
+        if theme.isGlass {
+            ZStack {
+                Rectangle().fill(.ultraThinMaterial)
+                Rectangle().fill(theme.keyColor.opacity(0.15))
+            }
+        } else {
+            LinearGradient(colors: theme.gradientColors, startPoint: .top, endPoint: .bottom)
+        }
     }
 }
 
@@ -868,7 +918,7 @@ struct OnboardingView: View {
          "Keystroke Viewer needs Accessibility access to read keystrokes.\n\nGo to System Settings > Privacy & Security > Accessibility and enable Keystroke Viewer, then restart the app."),
         ("paintbrush.fill",
          "Make It Yours",
-         "Choose from 6 themes, 5 animations, and 8 sound profiles. Save your favorite combinations as custom presets."),
+         "Choose from 15 themes (including glassmorphism), 5 animations, and 8 sound profiles. Save your favorite combinations as custom presets."),
         ("sparkles",
          "You're All Set!",
          "Look for the keyboard icon in your menu bar. Press ⌃⌥⌘K to toggle the overlay from any app."),

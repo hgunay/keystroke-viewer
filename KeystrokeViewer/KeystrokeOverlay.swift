@@ -131,6 +131,13 @@ struct KeystrokeOverlay: View {
                             .transition(store.activeTransition)
                     }
                 }
+                .padding(.horizontal, store.settings.showBackgroundBar ? 20 : 0)
+                .padding(.vertical, store.settings.showBackgroundBar ? 12 : 0)
+                .background {
+                    if store.settings.showBackgroundBar {
+                        BackgroundBarView(settings: store.settings)
+                    }
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
@@ -319,9 +326,11 @@ struct SingleKey: View {
         .frame(width: keyUnit * widthRatio, height: keyUnit)
         .background(keyBackground)
         .overlay(keyEdges)
-        .clipShape(RoundedRectangle(cornerRadius: 6 * keyScale, style: .continuous))
-        .shadow(color: .black.opacity(theme.isLight ? 0.15 : 0.50), radius: 1.5, x: 0, y: 2)
-        .shadow(color: .black.opacity(theme.isLight ? 0.10 : 0.35), radius: 7,   x: 0, y: 6)
+        .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
+        .shadow(color: .black.opacity(theme.isGlass ? 0.15 : (theme.isLight ? 0.15 : 0.50)),
+                radius: theme.isGlass ? 6 : 1.5, x: 0, y: theme.isGlass ? 3 : 2)
+        .shadow(color: .black.opacity(theme.isGlass ? 0.08 : (theme.isLight ? 0.10 : 0.35)),
+                radius: theme.isGlass ? 12 : 7, x: 0, y: 6)
         .opacity(keyOpacity)
     }
 
@@ -364,40 +373,58 @@ struct SingleKey: View {
 
     // MARK: – Visual recipe
 
-    private var keyBackground: some View {
-        LinearGradient(
-            colors: theme.gradientColors,
-            startPoint: .top, endPoint: .bottom
-        )
-    }
-
     private var scaledCornerRadius: CGFloat { 6 * keyScale }
 
+    @ViewBuilder
+    private var keyBackground: some View {
+        if theme.isGlass {
+            ZStack {
+                Rectangle().fill(.ultraThinMaterial)
+                Rectangle().fill(theme.keyColor.opacity(0.15))
+            }
+        } else {
+            LinearGradient(
+                colors: theme.gradientColors,
+                startPoint: .top, endPoint: .bottom
+            )
+        }
+    }
+
+    @ViewBuilder
     private var keyEdges: some View {
-        ZStack {
+        if theme.isGlass {
             RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous)
                 .strokeBorder(
-                    theme.isLight ? Color.black.opacity(0.12) : Color.white.opacity(0.09),
-                    lineWidth: 0.5
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.5), Color.white.opacity(0.1)],
+                        startPoint: .top, endPoint: .bottom
+                    ),
+                    lineWidth: 0.8
                 )
-
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(Color.white.opacity(theme.isLight ? 0.4 : 0.10))
-                    .frame(height: 1)
-                Spacer(minLength: 0)
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous)
+                    .strokeBorder(
+                        theme.isLight ? Color.black.opacity(0.12) : Color.white.opacity(0.09),
+                        lineWidth: 0.5
+                    )
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Color.white.opacity(theme.isLight ? 0.4 : 0.10))
+                        .frame(height: 1)
+                    Spacer(minLength: 0)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
+                .allowsHitTesting(false)
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    Rectangle()
+                        .fill(Color.black.opacity(theme.isLight ? 0.15 : 0.55))
+                        .frame(height: 2)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
+                .allowsHitTesting(false)
             }
-            .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
-            .allowsHitTesting(false)
-
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                Rectangle()
-                    .fill(Color.black.opacity(theme.isLight ? 0.15 : 0.55))
-                    .frame(height: 2)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
-            .allowsHitTesting(false)
         }
     }
 
@@ -447,43 +474,122 @@ private struct ComboKeyCap: View {
         }
         .padding(.horizontal, 10 * keyScale)
         .frame(height: keyUnit)
-        .background(
-            LinearGradient(
-                colors: theme.gradientColors,
-                startPoint: .top, endPoint: .bottom
-            )
-        )
+        .background(comboBackground)
         .overlay(keyEdges)
         .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
-        .shadow(color: .black.opacity(theme.isLight ? 0.15 : 0.50), radius: 1.5, x: 0, y: 2)
-        .shadow(color: .black.opacity(theme.isLight ? 0.10 : 0.35), radius: 7, x: 0, y: 6)
+        .shadow(color: .black.opacity(theme.isGlass ? 0.15 : (theme.isLight ? 0.15 : 0.50)),
+                radius: theme.isGlass ? 6 : 1.5, x: 0, y: theme.isGlass ? 3 : 2)
+        .shadow(color: .black.opacity(theme.isGlass ? 0.08 : (theme.isLight ? 0.10 : 0.35)),
+                radius: theme.isGlass ? 12 : 7, x: 0, y: 6)
         .opacity(keyOpacity)
     }
 
+    @ViewBuilder
+    private var comboBackground: some View {
+        if theme.isGlass {
+            ZStack {
+                Rectangle().fill(.ultraThinMaterial)
+                Rectangle().fill(theme.keyColor.opacity(0.15))
+            }
+        } else {
+            LinearGradient(colors: theme.gradientColors, startPoint: .top, endPoint: .bottom)
+        }
+    }
+
+    @ViewBuilder
     private var keyEdges: some View {
-        ZStack {
+        if theme.isGlass {
             RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous)
                 .strokeBorder(
-                    theme.isLight ? Color.black.opacity(0.12) : Color.white.opacity(0.09),
-                    lineWidth: 0.5
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.5), Color.white.opacity(0.1)],
+                        startPoint: .top, endPoint: .bottom
+                    ),
+                    lineWidth: 0.8
                 )
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(Color.white.opacity(theme.isLight ? 0.4 : 0.10))
-                    .frame(height: 1)
-                Spacer(minLength: 0)
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous)
+                    .strokeBorder(
+                        theme.isLight ? Color.black.opacity(0.12) : Color.white.opacity(0.09),
+                        lineWidth: 0.5
+                    )
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Color.white.opacity(theme.isLight ? 0.4 : 0.10))
+                        .frame(height: 1)
+                    Spacer(minLength: 0)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
+                .allowsHitTesting(false)
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    Rectangle()
+                        .fill(Color.black.opacity(theme.isLight ? 0.15 : 0.55))
+                        .frame(height: 2)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
+                .allowsHitTesting(false)
             }
-            .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
-            .allowsHitTesting(false)
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                Rectangle()
-                    .fill(Color.black.opacity(theme.isLight ? 0.15 : 0.55))
-                    .frame(height: 2)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
-            .allowsHitTesting(false)
         }
+    }
+}
+
+// MARK: - Background Bar
+
+private struct BackgroundBarView: View {
+    @ObservedObject var settings: AppSettings
+
+    private var barColor: Color { Color(hex: settings.backgroundBarColorHex) }
+    private let cr: CGFloat = 14
+
+    var body: some View {
+        Group {
+            switch settings.resolvedBarStyle {
+            case .material:
+                materialBar
+            case .solid:
+                solidBar
+            case .themeMatch:
+                themeBar
+            }
+        }
+        .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
+    }
+
+    @ViewBuilder
+    private var materialBar: some View {
+        ZStack {
+            materialShape
+            RoundedRectangle(cornerRadius: cr, style: .continuous)
+                .fill(barColor.opacity(settings.backgroundBarOpacity * 0.5))
+        }
+    }
+
+    @ViewBuilder
+    private var materialShape: some View {
+        switch settings.resolvedBarMaterial {
+        case .ultraThin:
+            RoundedRectangle(cornerRadius: cr, style: .continuous).fill(.ultraThinMaterial)
+        case .thin:
+            RoundedRectangle(cornerRadius: cr, style: .continuous).fill(.thinMaterial)
+        case .regular:
+            RoundedRectangle(cornerRadius: cr, style: .continuous).fill(.regularMaterial)
+        case .thick:
+            RoundedRectangle(cornerRadius: cr, style: .continuous).fill(.thickMaterial)
+        case .ultraThick:
+            RoundedRectangle(cornerRadius: cr, style: .continuous).fill(.ultraThickMaterial)
+        }
+    }
+
+    private var solidBar: some View {
+        RoundedRectangle(cornerRadius: cr, style: .continuous)
+            .fill(barColor.opacity(settings.backgroundBarOpacity))
+    }
+
+    private var themeBar: some View {
+        RoundedRectangle(cornerRadius: cr, style: .continuous)
+            .fill(settings.activeTheme.keyColor.opacity(settings.backgroundBarOpacity))
     }
 }
 
