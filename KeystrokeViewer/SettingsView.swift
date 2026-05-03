@@ -28,6 +28,7 @@ private struct GeneralTab: View {
     @EnvironmentObject var settings: AppSettings
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @StateObject private var recorder = ShortcutRecorderState()
+    @State private var audioDevices: [AudioOutputDevice] = []
 
     var body: some View {
         Form {
@@ -96,6 +97,13 @@ private struct GeneralTab: View {
                             Text(style.label).tag(style.rawValue)
                         }
                     }
+                    Picker("Output", selection: $settings.soundOutputDeviceUID) {
+                        Text("System Default").tag("")
+                        ForEach(audioDevices) { device in
+                            Text(device.name).tag(device.id)
+                        }
+                    }
+                    .onAppear { audioDevices = AudioOutputDevice.availableDevices() }
                     SliderRow(label: "Volume", value: $settings.soundVolume,
                               range: 0.1...1.0, format: { String(format: "%.0f%%", $0 * 100) })
                 }

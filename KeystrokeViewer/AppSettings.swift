@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import AppKit
+import CoreAudio
 
 // MARK: - Color Hex
 
@@ -206,6 +207,82 @@ enum SoundStyle: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - Audio Output Device
+
+struct AudioOutputDevice: Identifiable, Hashable {
+    let id: String
+    let name: String
+
+    static func availableDevices() -> [AudioOutputDevice] {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var dataSize: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address, 0, nil, &dataSize
+        ) == noErr else { return [] }
+
+        let count = Int(dataSize) / MemoryLayout<AudioDeviceID>.size
+        var ids = [AudioDeviceID](repeating: 0, count: count)
+        guard AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address, 0, nil, &dataSize, &ids
+        ) == noErr else { return [] }
+
+        var devices: [AudioOutputDevice] = []
+        for deviceID in ids {
+            var streamAddress = AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyStreamConfiguration,
+                mScope: kAudioDevicePropertyScopeOutput,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            var streamSize: UInt32 = 0
+            guard AudioObjectGetPropertyDataSize(
+                deviceID, &streamAddress, 0, nil, &streamSize
+            ) == noErr, streamSize > 0 else { continue }
+
+            let raw = UnsafeMutableRawPointer.allocate(
+                byteCount: Int(streamSize),
+                alignment: MemoryLayout<AudioBufferList>.alignment
+            )
+            defer { raw.deallocate() }
+            guard AudioObjectGetPropertyData(
+                deviceID, &streamAddress, 0, nil, &streamSize, raw
+            ) == noErr else { continue }
+
+            let buffers = UnsafeMutableAudioBufferListPointer(
+                raw.assumingMemoryBound(to: AudioBufferList.self)
+            )
+            let channels = buffers.reduce(0) { $0 + Int($1.mNumberChannels) }
+            guard channels > 0 else { continue }
+
+            var nameAddress = AudioObjectPropertyAddress(
+                mSelector: kAudioObjectPropertyName,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            var name: CFString = "" as CFString
+            var nameSize = UInt32(MemoryLayout<CFString>.size)
+            AudioObjectGetPropertyData(deviceID, &nameAddress, 0, nil, &nameSize, &name)
+
+            var uidAddress = AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyDeviceUID,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            var uid: CFString = "" as CFString
+            var uidSize = UInt32(MemoryLayout<CFString>.size)
+            AudioObjectGetPropertyData(deviceID, &uidAddress, 0, nil, &uidSize, &uid)
+
+            devices.append(AudioOutputDevice(id: uid as String, name: name as String))
+        }
+        return devices
+    }
+}
+
 // MARK: - App Settings
 
 final class AppSettings: ObservableObject {
@@ -285,6 +362,9 @@ final class AppSettings: ObservableObject {
     }
     @Published var soundStyle: String {
         didSet { defaults.set(soundStyle, forKey: "soundStyle") }
+    }
+    @Published var soundOutputDeviceUID: String {
+        didSet { defaults.set(soundOutputDeviceUID, forKey: "soundOutputDeviceUID") }
     }
     @Published var fontStyle: String {
         didSet { defaults.set(fontStyle, forKey: "fontStyle") }
@@ -369,6 +449,7 @@ final class AppSettings: ObservableObject {
         let sv = defaults.double(forKey: "soundVolume")
         self.soundVolume = sv > 0 ? sv : 0.5
         self.soundStyle = defaults.string(forKey: "soundStyle") ?? "mxBlue"
+        self.soundOutputDeviceUID = defaults.string(forKey: "soundOutputDeviceUID") ?? ""
         self.fontStyle = defaults.string(forKey: "fontStyle") ?? "system"
     }
 }

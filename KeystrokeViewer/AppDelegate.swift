@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import ApplicationServices
 import AVFoundation
+import CoreAudio
 import os
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -155,11 +156,13 @@ final class SoundManager {
     weak var settings: AppSettings?
     private let engine = AVAudioEngine()
     private let playerNode = AVAudioPlayerNode()
+    private let audioFormat = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)!
     private var buffers: [SoundStyle: AVAudioPCMBuffer] = [:]
+    private var currentDeviceUID = ""
 
     init() {
         engine.attach(playerNode)
-        engine.connect(playerNode, to: engine.mainMixerNode, format: nil)
+        engine.connect(playerNode, to: engine.mainMixerNode, format: audioFormat)
         try? engine.start()
         for style in SoundStyle.allCases {
             buffers[style] = generateBuffer(for: style)
@@ -168,12 +171,89 @@ final class SoundManager {
 
     func playClick() {
         guard let settings, settings.soundEnabled else { return }
+
+        if settings.soundOutputDeviceUID != currentDeviceUID {
+            applyOutputDevice(uid: settings.soundOutputDeviceUID)
+        }
+
         let style = SoundStyle(rawValue: settings.soundStyle) ?? .mxBlue
         guard let buffer = buffers[style] else { return }
         if !engine.isRunning { try? engine.start() }
         playerNode.volume = Float(settings.soundVolume)
         playerNode.scheduleBuffer(buffer, completionHandler: nil)
         playerNode.play()
+    }
+
+    private func applyOutputDevice(uid: String) {
+        currentDeviceUID = uid
+
+        let deviceID: AudioDeviceID
+        if uid.isEmpty {
+            var address = AudioObjectPropertyAddress(
+                mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            var defaultID: AudioDeviceID = 0
+            var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+            guard AudioObjectGetPropertyData(
+                AudioObjectID(kAudioObjectSystemObject),
+                &address, 0, nil, &size, &defaultID
+            ) == noErr else { return }
+            deviceID = defaultID
+        } else {
+            guard let resolved = deviceIDForUID(uid) else { return }
+            deviceID = resolved
+        }
+
+        engine.stop()
+        var mutableID = deviceID
+        if let au = engine.outputNode.audioUnit {
+            AudioUnitSetProperty(
+                au,
+                kAudioOutputUnitProperty_CurrentDevice,
+                kAudioUnitScope_Global,
+                0,
+                &mutableID,
+                UInt32(MemoryLayout<AudioDeviceID>.size)
+            )
+        }
+        try? engine.start()
+    }
+
+    private func deviceIDForUID(_ uid: String) -> AudioDeviceID? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var dataSize: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address, 0, nil, &dataSize
+        ) == noErr else { return nil }
+
+        let count = Int(dataSize) / MemoryLayout<AudioDeviceID>.size
+        var ids = [AudioDeviceID](repeating: 0, count: count)
+        guard AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address, 0, nil, &dataSize, &ids
+        ) == noErr else { return nil }
+
+        for id in ids {
+            var uidAddress = AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyDeviceUID,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            var deviceUID: CFString = "" as CFString
+            var uidSize = UInt32(MemoryLayout<CFString>.size)
+            guard AudioObjectGetPropertyData(
+                id, &uidAddress, 0, nil, &uidSize, &deviceUID
+            ) == noErr else { continue }
+            if (deviceUID as String) == uid { return id }
+        }
+        return nil
     }
 
     private struct ClickParams {
@@ -225,8 +305,7 @@ final class SoundManager {
         let sampleRate: Double = 44100
         let frameCount = AVAudioFrameCount(sampleRate * p.duration)
 
-        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1),
-              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return nil }
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: audioFormat, frameCapacity: frameCount) else { return nil }
 
         buffer.frameLength = frameCount
         guard let data = buffer.floatChannelData?[0] else { return nil }
