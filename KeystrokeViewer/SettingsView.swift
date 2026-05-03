@@ -3,26 +3,93 @@ import ServiceManagement
 import AppKit
 import AVFoundation
 
+private enum SettingsTab: String, CaseIterable {
+    case general, appearance, keys, presets
+
+    var icon: String {
+        switch self {
+        case .general:    return "gear"
+        case .appearance: return "paintbrush"
+        case .keys:       return "keyboard"
+        case .presets:    return "star"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .general:    return "General"
+        case .appearance: return "Appearance"
+        case .keys:       return "Keys"
+        case .presets:    return "Presets"
+        }
+    }
+}
+
 struct SettingsView: View {
     @EnvironmentObject var settings: AppSettings
+    @State private var selectedTab: SettingsTab = .general
 
     var body: some View {
-        TabView {
-            GeneralTab()
-                .environmentObject(settings)
-                .tabItem { Label("General", systemImage: "gear") }
-            AppearanceTab()
-                .environmentObject(settings)
-                .tabItem { Label("Appearance", systemImage: "paintbrush") }
-            KeysTab()
-                .environmentObject(settings)
-                .tabItem { Label("Keys", systemImage: "keyboard") }
-            PresetsTab()
-                .environmentObject(settings)
-                .tabItem { Label("Presets", systemImage: "star") }
+        VStack(spacing: 0) {
+            HStack(spacing: 2) {
+                ForEach(SettingsTab.allCases, id: \.self) { tab in
+                    SettingsTabButton(tab: tab, isSelected: selectedTab == tab) {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            selectedTab = tab
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
+            .padding(.bottom, 6)
+
+            Divider()
+
+            Group {
+                switch selectedTab {
+                case .general:
+                    GeneralTab().environmentObject(settings)
+                case .appearance:
+                    AppearanceTab().environmentObject(settings)
+                case .keys:
+                    KeysTab().environmentObject(settings)
+                case .presets:
+                    PresetsTab().environmentObject(settings)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 480, height: 520)
-        .padding()
+        .frame(width: 480, height: 540)
+    }
+}
+
+private struct SettingsTabButton: View {
+    let tab: SettingsTab
+    let isSelected: Bool
+    let action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 16, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+                Text(tab.label)
+                    .font(.system(size: 10, weight: isSelected ? .medium : .regular))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(isSelected ? Color.accentColor.opacity(0.12)
+                          : (isHovered ? Color.secondary.opacity(0.08) : .clear))
+            )
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
     }
 }
 
