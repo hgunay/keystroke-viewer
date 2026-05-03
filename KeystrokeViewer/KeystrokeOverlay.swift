@@ -103,7 +103,9 @@ final class KeystrokeStore: ObservableObject {
             var updated = event
             updated.id = visible[lastIdx].id
             updated.repeatCount = visible[lastIdx].repeatCount + 1
-            visible[lastIdx] = updated
+            withAnimation(resolvedStyle.entranceAnimation) {
+                visible[lastIdx] = updated
+            }
             scheduleHide()
             return
         }
@@ -275,59 +277,61 @@ struct KeyCap: View {
         return !event.modifiers.intersection([.control, .option, .command]).isEmpty
     }
 
+    @ViewBuilder
+    private var repeatBadge: some View {
+        if event.repeatCount > 1 {
+            Text("×\(event.repeatCount)")
+                .font(.system(size: 10 * settings.keyScale, weight: .bold, design: .monospaced))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1)
+                .background(Capsule().fill(Color.accentColor))
+                .offset(x: 6 * settings.keyScale, y: -6 * settings.keyScale)
+        }
+    }
+
     var body: some View {
-        Group {
-            if shouldShowAsCombo, let ch = charKey {
-                let modSymbols = modifierKeys.map(\.symbol).joined()
-                let charDisplay = ch.symbol.count == 1 && ch.symbol.first?.isLetter == true
-                    ? ch.symbol.uppercased() : ch.symbol
-                ComboKeyCap(
-                    modifierSymbols: modSymbols,
-                    charSymbol: charDisplay,
-                    fontSize: settings.fontSize,
-                    keyOpacity: settings.opacity,
-                    keyScale: settings.keyScale,
-                    theme: settings.activeTheme,
-                    fontStyle: settings.resolvedFontStyle
-                )
-            } else {
-                HStack(spacing: 8 * settings.keyScale) {
-                    ForEach(Array(modifierKeys.enumerated()), id: \.offset) { _, mod in
-                        SingleKey(
-                            symbol: mod.symbol,
-                            label: mod.name,
-                            fontSize: settings.fontSize,
-                            showIndicator: mod.name == "caps" ? capsLockOn : false,
-                            keyOpacity: settings.opacity,
-                            keyScale: settings.keyScale,
-                            theme: settings.activeTheme,
-                            fontStyle: settings.resolvedFontStyle
-                        )
-                    }
-                    if !event.isModifierOnly, let ch = charKey {
-                        SingleKey(
-                            symbol: ch.symbol,
-                            label: nil,
-                            fontSize: settings.fontSize,
-                            keyOpacity: settings.opacity,
-                            keyScale: settings.keyScale,
-                            theme: settings.activeTheme,
-                            fontStyle: settings.resolvedFontStyle
-                        )
-                    }
+        if shouldShowAsCombo, let ch = charKey {
+            let modSymbols = modifierKeys.map(\.symbol).joined()
+            let charDisplay = ch.symbol.count == 1 && ch.symbol.first?.isLetter == true
+                ? ch.symbol.uppercased() : ch.symbol
+            ComboKeyCap(
+                modifierSymbols: modSymbols,
+                charSymbol: charDisplay,
+                fontSize: settings.fontSize,
+                keyOpacity: settings.opacity,
+                keyScale: settings.keyScale,
+                theme: settings.activeTheme,
+                fontStyle: settings.resolvedFontStyle
+            )
+            .overlay(alignment: .topTrailing) { repeatBadge }
+        } else {
+            HStack(spacing: 8 * settings.keyScale) {
+                ForEach(Array(modifierKeys.enumerated()), id: \.offset) { _, mod in
+                    SingleKey(
+                        symbol: mod.symbol,
+                        label: mod.name,
+                        fontSize: settings.fontSize,
+                        showIndicator: mod.name == "caps" ? capsLockOn : false,
+                        keyOpacity: settings.opacity,
+                        keyScale: settings.keyScale,
+                        theme: settings.activeTheme,
+                        fontStyle: settings.resolvedFontStyle
+                    )
+                }
+                if !event.isModifierOnly, let ch = charKey {
+                    SingleKey(
+                        symbol: ch.symbol,
+                        label: nil,
+                        fontSize: settings.fontSize,
+                        keyOpacity: settings.opacity,
+                        keyScale: settings.keyScale,
+                        theme: settings.activeTheme,
+                        fontStyle: settings.resolvedFontStyle
+                    )
                 }
             }
-        }
-        .overlay(alignment: .topTrailing) {
-            if event.repeatCount > 1 {
-                Text("×\(event.repeatCount)")
-                    .font(.system(size: 10 * settings.keyScale, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1)
-                    .background(Capsule().fill(Color.accentColor))
-                    .offset(x: 6 * settings.keyScale, y: -6 * settings.keyScale)
-            }
+            .overlay(alignment: .topTrailing) { repeatBadge }
         }
     }
 }
