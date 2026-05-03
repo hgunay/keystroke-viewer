@@ -1,6 +1,7 @@
 import SwiftUI
 import ServiceManagement
 import AppKit
+import AVFoundation
 
 struct SettingsView: View {
     @EnvironmentObject var settings: AppSettings
@@ -33,6 +34,7 @@ private struct GeneralTab: View {
     @StateObject private var recorder = ShortcutRecorderState()
     @State private var audioDevices = AudioOutputDevice.availableDevices()
     @State private var showResetAlert = false
+    @StateObject private var soundPreview = SoundPreview()
 
     var body: some View {
         Form {
@@ -96,10 +98,20 @@ private struct GeneralTab: View {
             Section("Sound") {
                 Toggle("Keystroke sound", isOn: $settings.soundEnabled)
                 if settings.soundEnabled {
-                    Picker("Style", selection: $settings.soundStyle) {
-                        ForEach(SoundStyle.allCases) { style in
-                            Text(style.label).tag(style.rawValue)
+                    HStack {
+                        Picker("Style", selection: $settings.soundStyle) {
+                            ForEach(SoundStyle.allCases) { style in
+                                Text(style.label).tag(style.rawValue)
+                            }
                         }
+                        Button {
+                            soundPreview.playPreview(style: settings.soundStyle, volume: settings.soundVolume)
+                        } label: {
+                            Image(systemName: "speaker.wave.2.fill")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Preview sound")
                     }
                     Picker("Output", selection: $settings.soundOutputDeviceUID) {
                         Text("System Default").tag("")
@@ -146,9 +158,40 @@ private struct GeneralTab: View {
 
 private struct AppearanceTab: View {
     @EnvironmentObject var settings: AppSettings
+    @State private var previewAnimating = false
+    @State private var previewId = UUID()
 
     var body: some View {
         Form {
+            Section {
+                LivePreview(settings: settings, animating: $previewAnimating, previewId: previewId)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 70)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color.black.opacity(0.85))
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            } header: {
+                HStack {
+                    Text("Preview")
+                    Spacer()
+                    Button {
+                        previewId = UUID()
+                        previewAnimating = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                            previewAnimating = true
+                        }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .help("Replay animation")
+                }
+            }
+
             Section("Theme") {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 72))], spacing: 8) {
                     ForEach(KeyTheme.presets) { theme in
@@ -430,6 +473,119 @@ private struct PresetCard: View {
     }
 }
 
+// MARK: - Live Preview
+
+private struct LivePreview: View {
+    @ObservedObject var settings: AppSettings
+    @Binding var animating: Bool
+    let previewId: UUID
+
+    private var theme: KeyTheme { settings.activeTheme }
+    private var fontStyle: FontStyle { settings.resolvedFontStyle }
+    private var animStyle: AnimationStyle {
+        AnimationStyle(rawValue: settings.animationStyle) ?? .fade
+    }
+
+    private let sampleKeys: [(symbol: String, label: String?)] = [
+        ("⌘", "cmd"), ("⇧", "shift")
+    ]
+    private let sampleChar = "S"
+
+    var body: some View {
+        HStack(spacing: 14 * settings.keyScale) {
+            if animating {
+                if settings.compactCombos {
+                    ComboPreviewKey(
+                        modifiers: "⌘⇧",
+                        char: sampleChar,
+                        settings: settings
+                    )
+                    .transition(animStyle.transition)
+                } else {
+                    ForEach(sampleKeys.indices, id: \.self) { i in
+                        SingleKey(
+                            symbol: sampleKeys[i].symbol,
+                            label: sampleKeys[i].label,
+                            fontSize: settings.fontSize,
+                            keyOpacity: settings.opacity,
+                            keyScale: settings.keyScale,
+                            theme: theme,
+                            fontStyle: fontStyle
+                        )
+                        .transition(animStyle.transition)
+                    }
+                    SingleKey(
+                        symbol: sampleChar,
+                        fontSize: settings.fontSize,
+                        keyOpacity: settings.opacity,
+                        keyScale: settings.keyScale,
+                        theme: theme,
+                        fontStyle: fontStyle
+                    )
+                    .transition(animStyle.transition)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .id(previewId)
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(animStyle.entranceAnimation) {
+                    animating = true
+                }
+            }
+        }
+        .onChange(of: settings.animationStyle) { _ in replay() }
+        .onChange(of: settings.selectedThemeId) { _ in replay() }
+        .onChange(of: settings.fontStyle) { _ in replay() }
+        .onChange(of: settings.compactCombos) { _ in replay() }
+        .onChange(of: settings.customKeyColorHex) { _ in replay() }
+        .onChange(of: settings.customTextColorHex) { _ in replay() }
+    }
+
+    private func replay() {
+        withAnimation(animStyle.exitAnimation) {
+            animating = false
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            withAnimation(animStyle.entranceAnimation) {
+                animating = true
+            }
+        }
+    }
+}
+
+private struct ComboPreviewKey: View {
+    let modifiers: String
+    let char: String
+    let settings: AppSettings
+
+    private var theme: KeyTheme { settings.activeTheme }
+    private var scaledFontSize: CGFloat { settings.fontSize * settings.keyScale }
+    private var keyUnit: CGFloat { 36 * settings.keyScale }
+    private var cr: CGFloat { 6 * settings.keyScale }
+
+    var body: some View {
+        HStack(spacing: 2 * settings.keyScale) {
+            Text(modifiers)
+                .font(settings.resolvedFontStyle.font(size: scaledFontSize * 0.42))
+                .foregroundStyle(theme.textColor.opacity(0.7))
+            Text(char)
+                .font(settings.resolvedFontStyle.font(size: scaledFontSize * 0.5, weight: .medium))
+                .foregroundStyle(theme.textColor)
+        }
+        .padding(.horizontal, 10 * settings.keyScale)
+        .frame(height: keyUnit)
+        .background(
+            LinearGradient(colors: theme.gradientColors, startPoint: .top, endPoint: .bottom)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: cr, style: .continuous))
+        .shadow(color: .black.opacity(theme.isLight ? 0.15 : 0.50), radius: 1.5, x: 0, y: 2)
+        .shadow(color: .black.opacity(theme.isLight ? 0.10 : 0.35), radius: 7, x: 0, y: 6)
+        .opacity(settings.opacity)
+    }
+}
+
 // MARK: - Shortcut Recorder
 
 private final class ShortcutRecorderState: ObservableObject {
@@ -468,6 +624,85 @@ private final class ShortcutRecorderState: ObservableObject {
     }
 
     deinit { stopRecording() }
+}
+
+// MARK: - Sound Preview
+
+private final class SoundPreview: ObservableObject {
+    private var engine: AVAudioEngine?
+    private var player: AVAudioPlayerNode?
+    private let format = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)!
+
+    func playPreview(style: String, volume: Double) {
+        let engine = AVAudioEngine()
+        let player = AVAudioPlayerNode()
+        engine.attach(player)
+        engine.connect(player, to: engine.mainMixerNode, format: format)
+        try? engine.start()
+
+        let s = SoundStyle(rawValue: style) ?? .mxBlue
+        guard let buffer = generateBuffer(for: s) else { return }
+        player.volume = Float(volume)
+        player.scheduleBuffer(buffer) { [weak self] in
+            DispatchQueue.main.async {
+                engine.stop()
+                self?.engine = nil
+                self?.player = nil
+            }
+        }
+        player.play()
+        self.engine = engine
+        self.player = player
+    }
+
+    private struct ClickParams {
+        let duration: Double
+        let tones: [(freq: Double, amp: Double, decay: Double)]
+        let noiseAmp: Double
+        let noiseDecay: Double
+    }
+
+    private func params(for style: SoundStyle) -> ClickParams {
+        switch style {
+        case .mxBlue:
+            return ClickParams(duration: 0.025, tones: [(2800, 0.6, 180), (5500, 0.3, 500)], noiseAmp: 0.20, noiseDecay: 350)
+        case .mxBrown:
+            return ClickParams(duration: 0.022, tones: [(2200, 0.5, 220), (4000, 0.15, 600)], noiseAmp: 0.12, noiseDecay: 400)
+        case .mxRed:
+            return ClickParams(duration: 0.018, tones: [(1800, 0.35, 280), (3200, 0.08, 700)], noiseAmp: 0.06, noiseDecay: 500)
+        case .topre:
+            return ClickParams(duration: 0.035, tones: [(800, 0.5, 100), (1500, 0.3, 180), (3000, 0.1, 400)], noiseAmp: 0.06, noiseDecay: 200)
+        case .bucklingSpring:
+            return ClickParams(duration: 0.038, tones: [(3500, 0.5, 130), (7000, 0.25, 350), (1200, 0.3, 90)], noiseAmp: 0.25, noiseDecay: 280)
+        case .typewriter:
+            return ClickParams(duration: 0.032, tones: [(1000, 0.5, 160), (4500, 0.2, 500), (500, 0.3, 120)], noiseAmp: 0.18, noiseDecay: 250)
+        case .bubble:
+            return ClickParams(duration: 0.030, tones: [(600, 0.5, 100), (1200, 0.3, 150)], noiseAmp: 0.03, noiseDecay: 500)
+        case .minimal:
+            return ClickParams(duration: 0.012, tones: [(3000, 0.3, 400)], noiseAmp: 0.04, noiseDecay: 600)
+        }
+    }
+
+    private func generateBuffer(for style: SoundStyle) -> AVAudioPCMBuffer? {
+        let p = params(for: style)
+        let sampleRate: Double = 44100
+        let frameCount = AVAudioFrameCount(sampleRate * p.duration)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return nil }
+        buffer.frameLength = frameCount
+        guard let data = buffer.floatChannelData?[0] else { return nil }
+        for i in 0..<Int(frameCount) {
+            let t = Double(i) / sampleRate
+            var sample = 0.0
+            for tone in p.tones {
+                sample += sin(2.0 * .pi * tone.freq * t) * tone.amp * exp(-t * tone.decay)
+            }
+            if p.noiseAmp > 0 {
+                sample += Double.random(in: -1...1) * p.noiseAmp * exp(-t * p.noiseDecay)
+            }
+            data[i] = Float(sample)
+        }
+        return buffer
+    }
 }
 
 // MARK: - Slider Row
