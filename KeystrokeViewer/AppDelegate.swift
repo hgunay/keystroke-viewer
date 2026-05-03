@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotkeyGlobalMonitor: Any?
     private var hotkeyLocalMonitor: Any?
     private var soundManager: SoundManager?
+    private var onboardingWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -26,6 +27,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupHotkeyMonitor()
         soundManager = SoundManager()
         soundManager?.settings = settings
+
+        if !UserDefaults.standard.bool(forKey: "onboardingCompleted") {
+            showOnboarding()
+        }
+    }
+
+    private func showOnboarding() {
+        let view = OnboardingView {
+            UserDefaults.standard.set(true, forKey: "onboardingCompleted")
+            self.onboardingWindow?.close()
+            self.onboardingWindow = nil
+            DispatchQueue.main.async {
+                NSApp.setActivationPolicy(.accessory)
+            }
+        }
+        let host = NSHostingController(rootView: view)
+        let win = NSWindow(contentViewController: host)
+        win.title = "Welcome to Keystroke Viewer"
+        win.styleMask = [.titled, .closable]
+        win.isReleasedWhenClosed = false
+        win.setContentSize(NSSize(width: 480, height: 400))
+        win.center()
+        onboardingWindow = win
+
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        win.makeKeyAndOrderFront(nil)
     }
 
     private func setupStatusItem() {
@@ -40,6 +68,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         toggleItem.tag = 1
         toggleItem.state = settings.overlayEnabled ? .on : .off
         menu.addItem(toggleItem)
+        menu.addItem(.separator())
+
+        let themeMenu = NSMenu()
+        for theme in KeyTheme.presets {
+            let item = NSMenuItem(title: theme.name, action: #selector(selectTheme(_:)), keyEquivalent: "")
+            item.representedObject = theme.id
+            themeMenu.addItem(item)
+        }
+        let themeItem = NSMenuItem(title: "Theme", action: nil, keyEquivalent: "")
+        themeItem.submenu = themeMenu
+        themeItem.tag = 10
+        menu.addItem(themeItem)
+
+        let presetMenu = NSMenu()
+        for preset in QuickPreset.all {
+            let item = NSMenuItem(title: preset.name, action: #selector(selectPreset(_:)), keyEquivalent: "")
+            item.representedObject = preset.id
+            presetMenu.addItem(item)
+        }
+        let presetItem = NSMenuItem(title: "Preset", action: nil, keyEquivalent: "")
+        presetItem.submenu = presetMenu
+        presetItem.tag = 11
+        menu.addItem(presetItem)
+
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Preferences…", action: #selector(openPrefs), keyEquivalent: ","))
         menu.addItem(.separator())
@@ -73,6 +125,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func toggleOverlay() {
         settings.overlayEnabled.toggle()
+    }
+
+    @objc private func selectTheme(_ sender: NSMenuItem) {
+        guard let themeId = sender.representedObject as? String else { return }
+        settings.selectedThemeId = themeId
+    }
+
+    @objc private func selectPreset(_ sender: NSMenuItem) {
+        guard let presetId = sender.representedObject as? String,
+              let preset = QuickPreset.all.first(where: { $0.id == presetId }) else { return }
+        preset.apply(to: settings)
     }
 
     private func startMonitorIfPermitted() {
@@ -159,6 +222,22 @@ extension AppDelegate: NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         if let item = menu.item(withTag: 1) {
             item.state = settings.overlayEnabled ? .on : .off
+        }
+        if let themeMenu = menu.item(withTag: 10)?.submenu {
+            for item in themeMenu.items {
+                item.state = (item.representedObject as? String) == settings.selectedThemeId ? .on : .off
+            }
+        }
+        if let presetMenu = menu.item(withTag: 11)?.submenu {
+            for item in presetMenu.items {
+                guard let presetId = item.representedObject as? String,
+                      let preset = QuickPreset.all.first(where: { $0.id == presetId }) else { continue }
+                let active = settings.selectedThemeId == preset.themeId &&
+                             settings.animationStyle == preset.animationStyle &&
+                             settings.fontStyle == preset.fontStyle &&
+                             settings.position == preset.position
+                item.state = active ? .on : .off
+            }
         }
     }
 }

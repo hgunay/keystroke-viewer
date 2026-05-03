@@ -238,10 +238,10 @@ private struct AppearanceTab: View {
 
             Section("Display") {
                 Toggle("Compact modifier combos", isOn: $settings.compactCombos)
-                Picker("Position", selection: $settings.position) {
-                    ForEach(OverlayPosition.allCases) { p in
-                        Text(p.label).tag(p)
-                    }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Position")
+                        .font(.body)
+                    PositionMinimap(selection: $settings.position)
                 }
                 Picker("Screen", selection: $settings.screenDisplayMode) {
                     ForEach(ScreenDisplayMode.allCases) { mode in
@@ -598,6 +598,81 @@ private struct ComboPreviewKey: View {
     }
 }
 
+// MARK: - Position Minimap
+
+private struct PositionMinimap: View {
+    @Binding var selection: OverlayPosition
+
+    private let screenW: CGFloat = 200
+    private let screenH: CGFloat = 125
+    private let barW: CGFloat = 70
+    private let barH: CGFloat = 14
+    private let cornerW: CGFloat = 55
+    private let margin: CGFloat = 6
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.black.opacity(0.75))
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+
+            ForEach(OverlayPosition.allCases) { pos in
+                positionBar(for: pos)
+            }
+        }
+        .frame(width: screenW, height: screenH)
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func positionBar(for pos: OverlayPosition) -> some View {
+        let isActive = selection == pos
+        let w = isCorner(pos) ? cornerW : barW
+        let color = isActive ? Color.accentColor : Color.white.opacity(0.15)
+
+        RoundedRectangle(cornerRadius: 3, style: .continuous)
+            .fill(color.opacity(isActive ? 0.9 : 1))
+            .frame(width: w, height: barH)
+            .overlay {
+                if isActive {
+                    Text(pos.label)
+                        .font(.system(size: 7, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+            }
+            .position(x: xPos(for: pos), y: yPos(for: pos))
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    selection = pos
+                }
+            }
+    }
+
+    private func isCorner(_ pos: OverlayPosition) -> Bool {
+        switch pos {
+        case .topLeft, .topRight, .bottomLeft, .bottomRight: return true
+        default: return false
+        }
+    }
+
+    private func xPos(for pos: OverlayPosition) -> CGFloat {
+        switch pos {
+        case .topLeft, .bottomLeft:     return margin + cornerW / 2
+        case .topRight, .bottomRight:   return screenW - margin - cornerW / 2
+        case .top, .bottom, .center:    return screenW / 2
+        }
+    }
+
+    private func yPos(for pos: OverlayPosition) -> CGFloat {
+        switch pos {
+        case .top, .topLeft, .topRight:          return margin + barH / 2
+        case .bottom, .bottomLeft, .bottomRight: return screenH - margin - barH / 2
+        case .center:                             return screenH / 2
+        }
+    }
+}
+
 // MARK: - Animation Preview Card
 
 private struct AnimationPreviewCard: View {
@@ -775,6 +850,88 @@ private final class SoundPreview: ObservableObject {
             data[i] = Float(sample)
         }
         return buffer
+    }
+}
+
+// MARK: - Onboarding
+
+struct OnboardingView: View {
+    let onComplete: () -> Void
+    @State private var step = 0
+
+    private let steps: [(icon: String, title: String, body: String)] = [
+        ("keyboard.fill",
+         "Keystroke Viewer",
+         "Your keystrokes displayed as a beautiful real-time overlay. Perfect for presentations, tutorials, and screen recordings."),
+        ("lock.shield.fill",
+         "Accessibility Permission",
+         "Keystroke Viewer needs Accessibility access to read keystrokes.\n\nGo to System Settings > Privacy & Security > Accessibility and enable Keystroke Viewer, then restart the app."),
+        ("paintbrush.fill",
+         "Make It Yours",
+         "Choose from 6 themes, 5 animations, and 8 sound profiles. Save your favorite combinations as custom presets."),
+        ("sparkles",
+         "You're All Set!",
+         "Look for the keyboard icon in your menu bar. Press ⌃⌥⌘K to toggle the overlay from any app."),
+    ]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer()
+
+            Image(systemName: steps[step].icon)
+                .font(.system(size: 48))
+                .foregroundStyle(.tint)
+                .frame(height: 60)
+                .id(step)
+                .transition(.opacity)
+
+            Text(steps[step].title)
+                .font(.title.bold())
+                .padding(.top, 16)
+                .id("title-\(step)")
+                .transition(.opacity)
+
+            Text(steps[step].body)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 360)
+                .padding(.top, 8)
+                .id("body-\(step)")
+                .transition(.opacity)
+
+            Spacer()
+
+            HStack {
+                if step > 0 {
+                    Button("Back") {
+                        withAnimation(.easeInOut(duration: 0.25)) { step -= 1 }
+                    }
+                    .buttonStyle(.bordered)
+                }
+                Spacer()
+                HStack(spacing: 6) {
+                    ForEach(0..<steps.count, id: \.self) { i in
+                        Circle()
+                            .fill(i == step ? Color.accentColor : Color.secondary.opacity(0.3))
+                            .frame(width: 7, height: 7)
+                    }
+                }
+                Spacer()
+                if step < steps.count - 1 {
+                    Button("Next") {
+                        withAnimation(.easeInOut(duration: 0.25)) { step += 1 }
+                    }
+                    .buttonStyle(.borderedProminent)
+                } else {
+                    Button("Get Started") { onComplete() }
+                        .buttonStyle(.borderedProminent)
+                }
+            }
+            .padding(.bottom, 8)
+        }
+        .padding(32)
+        .frame(width: 480, height: 400)
     }
 }
 
