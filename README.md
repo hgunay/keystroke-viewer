@@ -18,6 +18,7 @@ A macOS menu bar app that displays your keystrokes as a real-time overlay on scr
 - **5 animation styles** — None, Fade, Slide Up, Scale, Bounce
 - **Global toggle shortcut** — show/hide overlay from any app (default: ⌃⌥⌘K)
 - **Mouse click visualization** — ripple animation on left, right, and middle clicks with distinct colors
+- **8 keyboard sound profiles** — Cherry MX Blue/Brown/Red, Topre, Buckling Spring, Typewriter, Bubble Pop, Minimal Tap
 - **Password field detection** — automatically hides keystrokes when typing in secure fields
 - **Configurable key groups** — toggle visibility for alphanumeric, modifiers, function keys, navigation, special keys, and Caps Lock independently
 - **Multi-monitor support** — show overlay on all screens or main screen only
@@ -76,6 +77,7 @@ Settings are organized in three tabs:
 | **Toggle shortcut** | Record a custom global hotkey to show/hide the overlay |
 | **Launch at login** | Auto-start when you log in |
 | **Mouse clicks** | Show expanding ripple animation at click location (left=white, right=blue, middle=orange) |
+| **Keystroke sound** | Toggle sound on/off, pick from 8 profiles (MX Blue/Brown/Red, Topre, Buckling Spring, Typewriter, Bubble Pop, Minimal), adjust volume (10–100%) |
 | **Hide in password fields** | Automatically suppress keystrokes when a secure input field is active |
 
 #### Appearance

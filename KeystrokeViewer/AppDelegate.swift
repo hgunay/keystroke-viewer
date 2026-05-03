@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import ApplicationServices
+import AVFoundation
 import os
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -14,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var prefsWindow: NSWindow?
     private var hotkeyGlobalMonitor: Any?
     private var hotkeyLocalMonitor: Any?
+    private var soundManager: SoundManager?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -21,6 +23,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         overlay = OverlayController(settings: settings)
         startMonitorIfPermitted()
         setupHotkeyMonitor()
+        soundManager = SoundManager()
+        soundManager?.settings = settings
     }
 
     private func setupStatusItem() {
@@ -92,6 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         monitor = KeyMonitor { [weak self] event in
             DispatchQueue.main.async {
                 self?.overlay?.push(event)
+                self?.soundManager?.playClick()
             }
         }
         monitor?.settings = settings
@@ -141,5 +146,103 @@ extension AppDelegate: NSMenuDelegate {
         if let item = menu.item(withTag: 1) {
             item.state = settings.overlayEnabled ? .on : .off
         }
+    }
+}
+
+// MARK: - Sound Manager
+
+final class SoundManager {
+    weak var settings: AppSettings?
+    private let engine = AVAudioEngine()
+    private let playerNode = AVAudioPlayerNode()
+    private var buffers: [SoundStyle: AVAudioPCMBuffer] = [:]
+
+    init() {
+        engine.attach(playerNode)
+        engine.connect(playerNode, to: engine.mainMixerNode, format: nil)
+        try? engine.start()
+        for style in SoundStyle.allCases {
+            buffers[style] = generateBuffer(for: style)
+        }
+    }
+
+    func playClick() {
+        guard let settings, settings.soundEnabled else { return }
+        let style = SoundStyle(rawValue: settings.soundStyle) ?? .mxBlue
+        guard let buffer = buffers[style] else { return }
+        if !engine.isRunning { try? engine.start() }
+        playerNode.volume = Float(settings.soundVolume)
+        playerNode.scheduleBuffer(buffer, completionHandler: nil)
+        playerNode.play()
+    }
+
+    private struct ClickParams {
+        let duration: Double
+        let tones: [(freq: Double, amp: Double, decay: Double)]
+        let noiseAmp: Double
+        let noiseDecay: Double
+    }
+
+    private func params(for style: SoundStyle) -> ClickParams {
+        switch style {
+        case .mxBlue:
+            return ClickParams(duration: 0.025,
+                tones: [(2800, 0.6, 180), (5500, 0.3, 500)],
+                noiseAmp: 0.20, noiseDecay: 350)
+        case .mxBrown:
+            return ClickParams(duration: 0.022,
+                tones: [(2200, 0.5, 220), (4000, 0.15, 600)],
+                noiseAmp: 0.12, noiseDecay: 400)
+        case .mxRed:
+            return ClickParams(duration: 0.018,
+                tones: [(1800, 0.35, 280), (3200, 0.08, 700)],
+                noiseAmp: 0.06, noiseDecay: 500)
+        case .topre:
+            return ClickParams(duration: 0.035,
+                tones: [(800, 0.5, 100), (1500, 0.3, 180), (3000, 0.1, 400)],
+                noiseAmp: 0.06, noiseDecay: 200)
+        case .bucklingSpring:
+            return ClickParams(duration: 0.038,
+                tones: [(3500, 0.5, 130), (7000, 0.25, 350), (1200, 0.3, 90)],
+                noiseAmp: 0.25, noiseDecay: 280)
+        case .typewriter:
+            return ClickParams(duration: 0.032,
+                tones: [(1000, 0.5, 160), (4500, 0.2, 500), (500, 0.3, 120)],
+                noiseAmp: 0.18, noiseDecay: 250)
+        case .bubble:
+            return ClickParams(duration: 0.030,
+                tones: [(600, 0.5, 100), (1200, 0.3, 150)],
+                noiseAmp: 0.03, noiseDecay: 500)
+        case .minimal:
+            return ClickParams(duration: 0.012,
+                tones: [(3000, 0.3, 400)],
+                noiseAmp: 0.04, noiseDecay: 600)
+        }
+    }
+
+    private func generateBuffer(for style: SoundStyle) -> AVAudioPCMBuffer? {
+        let p = params(for: style)
+        let sampleRate: Double = 44100
+        let frameCount = AVAudioFrameCount(sampleRate * p.duration)
+
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1),
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return nil }
+
+        buffer.frameLength = frameCount
+        guard let data = buffer.floatChannelData?[0] else { return nil }
+
+        for i in 0..<Int(frameCount) {
+            let t = Double(i) / sampleRate
+            var sample = 0.0
+            for tone in p.tones {
+                sample += sin(2.0 * .pi * tone.freq * t) * tone.amp * exp(-t * tone.decay)
+            }
+            if p.noiseAmp > 0 {
+                sample += Double.random(in: -1...1) * p.noiseAmp * exp(-t * p.noiseDecay)
+            }
+            data[i] = Float(sample)
+        }
+
+        return buffer
     }
 }

@@ -187,6 +187,25 @@ enum FontStyle: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - Sound Style
+
+enum SoundStyle: String, CaseIterable, Identifiable {
+    case mxBlue, mxBrown, mxRed, topre, bucklingSpring, typewriter, bubble, minimal
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .mxBlue:         return "Cherry MX Blue"
+        case .mxBrown:        return "Cherry MX Brown"
+        case .mxRed:          return "Cherry MX Red"
+        case .topre:          return "Topre"
+        case .bucklingSpring: return "Buckling Spring"
+        case .typewriter:     return "Typewriter"
+        case .bubble:         return "Bubble Pop"
+        case .minimal:        return "Minimal Tap"
+        }
+    }
+}
+
 // MARK: - App Settings
 
 final class AppSettings: ObservableObject {
@@ -257,6 +276,15 @@ final class AppSettings: ObservableObject {
     }
     @Published var showMouseClicks: Bool {
         didSet { defaults.set(showMouseClicks, forKey: "showMouseClicks") }
+    }
+    @Published var soundEnabled: Bool {
+        didSet { defaults.set(soundEnabled, forKey: "soundEnabled") }
+    }
+    @Published var soundVolume: Double {
+        didSet { defaults.set(soundVolume, forKey: "soundVolume") }
+    }
+    @Published var soundStyle: String {
+        didSet { defaults.set(soundStyle, forKey: "soundStyle") }
     }
     @Published var fontStyle: String {
         didSet { defaults.set(fontStyle, forKey: "fontStyle") }
@@ -337,6 +365,10 @@ final class AppSettings: ObservableObject {
         self.hideInSecureFields = defaults.object(forKey: "hideInSecureFields") as? Bool ?? true
         self.displayOnAllScreens = defaults.object(forKey: "displayOnAllScreens") as? Bool ?? false
         self.showMouseClicks = defaults.object(forKey: "showMouseClicks") as? Bool ?? false
+        self.soundEnabled = defaults.object(forKey: "soundEnabled") as? Bool ?? false
+        let sv = defaults.double(forKey: "soundVolume")
+        self.soundVolume = sv > 0 ? sv : 0.5
+        self.soundStyle = defaults.string(forKey: "soundStyle") ?? "mxBlue"
         self.fontStyle = defaults.string(forKey: "fontStyle") ?? "system"
     }
 }

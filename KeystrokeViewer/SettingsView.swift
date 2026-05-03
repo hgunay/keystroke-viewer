@@ -88,6 +88,18 @@ private struct GeneralTab: View {
             Section("Mouse") {
                 Toggle("Show mouse click animation", isOn: $settings.showMouseClicks)
             }
+            Section("Sound") {
+                Toggle("Keystroke sound", isOn: $settings.soundEnabled)
+                if settings.soundEnabled {
+                    Picker("Style", selection: $settings.soundStyle) {
+                        ForEach(SoundStyle.allCases) { style in
+                            Text(style.label).tag(style.rawValue)
+                        }
+                    }
+                    SliderRow(label: "Volume", value: $settings.soundVolume,
+                              range: 0.1...1.0, format: { String(format: "%.0f%%", $0 * 100) })
+                }
+            }
             Section("Privacy") {
                 Toggle("Hide keystrokes in password fields", isOn: $settings.hideInSecureFields)
             }
