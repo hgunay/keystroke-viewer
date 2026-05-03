@@ -225,9 +225,13 @@ private struct AppearanceTab: View {
             }
 
             Section("Animation") {
-                Picker("Style", selection: $settings.animationStyle) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 80))], spacing: 8) {
                     ForEach(AnimationStyle.allCases) { style in
-                        Text(style.label).tag(style.rawValue)
+                        AnimationPreviewCard(
+                            style: style,
+                            isSelected: settings.animationStyle == style.rawValue
+                        )
+                        .onTapGesture { settings.animationStyle = style.rawValue }
                     }
                 }
             }
@@ -285,6 +289,7 @@ private struct ThemePreview: View {
     let theme: KeyTheme
     let isSelected: Bool
     var isCustom: Bool = false
+    @State private var isHovered = false
 
     var body: some View {
         VStack(spacing: 4) {
@@ -306,22 +311,29 @@ private struct ThemePreview: View {
                     }
                 }
                 .overlay {
-                    if isSelected {
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .strokeBorder(Color.accentColor, lineWidth: 2)
-                    }
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(
+                            isSelected ? Color.accentColor : (isHovered ? Color.accentColor.opacity(0.5) : .clear),
+                            lineWidth: 2
+                        )
                 }
-                .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+                .shadow(color: .black.opacity(isHovered ? 0.35 : 0.2), radius: isHovered ? 4 : 2, y: isHovered ? 2 : 1)
 
             Text(theme.name)
                 .font(.caption2)
                 .foregroundStyle(isSelected ? .primary : .secondary)
         }
         .padding(6)
+        .scaleEffect(isHovered ? 1.1 : 1.0)
         .background {
             if isSelected {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color.accentColor.opacity(0.1))
+            }
+        }
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.15)) {
+                isHovered = hovering
             }
         }
     }
@@ -583,6 +595,67 @@ private struct ComboPreviewKey: View {
         .shadow(color: .black.opacity(theme.isLight ? 0.15 : 0.50), radius: 1.5, x: 0, y: 2)
         .shadow(color: .black.opacity(theme.isLight ? 0.10 : 0.35), radius: 7, x: 0, y: 6)
         .opacity(settings.opacity)
+    }
+}
+
+// MARK: - Animation Preview Card
+
+private struct AnimationPreviewCard: View {
+    let style: AnimationStyle
+    let isSelected: Bool
+    @State private var showing = false
+    @State private var isHovered = false
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(Color.secondary.opacity(0.15))
+                    .frame(width: 36, height: 28)
+
+                if showing {
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(Color.accentColor.opacity(0.8))
+                        .frame(width: 36, height: 28)
+                        .transition(style.transition)
+                }
+            }
+            .frame(height: 32)
+
+            Text(style.label)
+                .font(.caption2)
+                .foregroundStyle(isSelected ? .primary : .secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isSelected ? Color.accentColor.opacity(0.12) : (isHovered ? Color.secondary.opacity(0.06) : .clear))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 1.5)
+        )
+        .onHover { hovering in
+            isHovered = hovering
+            if hovering { playDemo() }
+        }
+        .onAppear { playDemo() }
+    }
+
+    private func playDemo() {
+        showing = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            withAnimation(style.entranceAnimation ?? .easeOut(duration: 0.2)) {
+                showing = true
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            withAnimation(style.exitAnimation ?? .easeIn(duration: 0.2)) {
+                showing = false
+            }
+        }
     }
 }
 
