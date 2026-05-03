@@ -207,6 +207,123 @@ enum SoundStyle: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - Quick Preset
+
+struct QuickPreset: Identifiable {
+    let id: String
+    let name: String
+    let icon: String
+    let description: String
+    let themeId: String
+    let animationStyle: String
+    let fontStyle: String
+    let fontSize: Double
+    let keyScale: Double
+    let opacity: Double
+    let position: OverlayPosition
+    let displayTime: Double
+    let soundEnabled: Bool
+    let soundStyle: String
+    let soundVolume: Double
+
+    func apply(to s: AppSettings) {
+        s.selectedThemeId = themeId
+        s.animationStyle = animationStyle
+        s.fontStyle = fontStyle
+        s.fontSize = fontSize
+        s.keyScale = keyScale
+        s.opacity = opacity
+        s.position = position
+        s.displayTime = displayTime
+        s.soundEnabled = soundEnabled
+        s.soundStyle = soundStyle
+        s.soundVolume = soundVolume
+    }
+
+    static let all: [QuickPreset] = [
+        QuickPreset(
+            id: "presentation", name: "Presentation", icon: "person.2.fill",
+            description: "Large keys, dark theme, bounce animation for live demos",
+            themeId: "dark", animationStyle: "bounce", fontStyle: "system",
+            fontSize: 42, keyScale: 1.5, opacity: 0.95, position: .bottom,
+            displayTime: 2.0, soundEnabled: false, soundStyle: "mxBlue", soundVolume: 0.5
+        ),
+        QuickPreset(
+            id: "coding", name: "Coding", icon: "chevron.left.forwardslash.chevron.right",
+            description: "Mono font, midnight theme, compact corner overlay",
+            themeId: "midnight", animationStyle: "fade", fontStyle: "mono",
+            fontSize: 28, keyScale: 1.0, opacity: 0.8, position: .bottomRight,
+            displayTime: 1.5, soundEnabled: false, soundStyle: "mxBlue", soundVolume: 0.5
+        ),
+        QuickPreset(
+            id: "streaming", name: "Streaming", icon: "video.fill",
+            description: "Ocean theme, scale animation, top position for streams",
+            themeId: "ocean", animationStyle: "scale", fontStyle: "rounded",
+            fontSize: 36, keyScale: 1.2, opacity: 0.9, position: .top,
+            displayTime: 1.5, soundEnabled: false, soundStyle: "mxBlue", soundVolume: 0.5
+        ),
+        QuickPreset(
+            id: "minimal", name: "Minimal", icon: "minus.circle",
+            description: "Small, subtle keys that stay out of your way",
+            themeId: "light", animationStyle: "fade", fontStyle: "system",
+            fontSize: 20, keyScale: 0.7, opacity: 0.6, position: .bottomRight,
+            displayTime: 1.0, soundEnabled: false, soundStyle: "minimal", soundVolume: 0.3
+        ),
+        QuickPreset(
+            id: "typewriter", name: "Typewriter", icon: "textformat",
+            description: "Retro serif font with typewriter click sounds",
+            themeId: "dark", animationStyle: "slideUp", fontStyle: "serif",
+            fontSize: 32, keyScale: 1.0, opacity: 0.85, position: .bottom,
+            displayTime: 1.5, soundEnabled: true, soundStyle: "typewriter", soundVolume: 0.5
+        ),
+        QuickPreset(
+            id: "mechanical", name: "Mechanical", icon: "keyboard.fill",
+            description: "Full mechanical keyboard experience with MX Blue clicks",
+            themeId: "forest", animationStyle: "bounce", fontStyle: "system",
+            fontSize: 36, keyScale: 1.2, opacity: 0.9, position: .bottom,
+            displayTime: 1.5, soundEnabled: true, soundStyle: "mxBlue", soundVolume: 0.7
+        ),
+    ]
+}
+
+// MARK: - Saved Preset
+
+struct SavedPreset: Codable, Identifiable {
+    let id: String
+    var name: String
+    let themeId: String
+    let animationStyle: String
+    let fontStyle: String
+    let fontSize: Double
+    let keyScale: Double
+    let opacity: Double
+    let position: String
+    let displayTime: Double
+    let soundEnabled: Bool
+    let soundStyle: String
+    let soundVolume: Double
+
+    var summary: String {
+        let theme = KeyTheme.preset(for: themeId)?.name ?? themeId
+        let pos = OverlayPosition(rawValue: position)?.label ?? position
+        return "\(theme) · \(pos)"
+    }
+
+    func apply(to s: AppSettings) {
+        s.selectedThemeId = themeId
+        s.animationStyle = animationStyle
+        s.fontStyle = fontStyle
+        s.fontSize = fontSize
+        s.keyScale = keyScale
+        s.opacity = opacity
+        s.position = OverlayPosition(rawValue: position) ?? .bottom
+        s.displayTime = displayTime
+        s.soundEnabled = soundEnabled
+        s.soundStyle = soundStyle
+        s.soundVolume = soundVolume
+    }
+}
+
 // MARK: - Audio Output Device
 
 struct AudioOutputDevice: Identifiable, Hashable {
@@ -384,6 +501,38 @@ final class AppSettings: ObservableObject {
         if flags.contains(.command) { label += "⌘" }
         label += toggleKeyDisplay.uppercased()
         return label
+    }
+
+    func saveCurrentAsPreset(name: String) {
+        var presets = loadCustomPresets()
+        presets.append(SavedPreset(
+            id: UUID().uuidString, name: name,
+            themeId: selectedThemeId, animationStyle: animationStyle,
+            fontStyle: fontStyle, fontSize: fontSize, keyScale: keyScale,
+            opacity: opacity, position: position.rawValue,
+            displayTime: displayTime, soundEnabled: soundEnabled,
+            soundStyle: soundStyle, soundVolume: soundVolume
+        ))
+        saveCustomPresets(presets)
+    }
+
+    func loadCustomPresets() -> [SavedPreset] {
+        guard let data = defaults.data(forKey: "customPresets"),
+              let presets = try? JSONDecoder().decode([SavedPreset].self, from: data)
+        else { return [] }
+        return presets
+    }
+
+    func deleteCustomPreset(id: String) {
+        var presets = loadCustomPresets()
+        presets.removeAll { $0.id == id }
+        saveCustomPresets(presets)
+    }
+
+    private func saveCustomPresets(_ presets: [SavedPreset]) {
+        if let data = try? JSONEncoder().encode(presets) {
+            defaults.set(data, forKey: "customPresets")
+        }
     }
 
     var activeTheme: KeyTheme {

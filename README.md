@@ -19,6 +19,8 @@ A macOS menu bar app that displays your keystrokes as a real-time overlay on scr
 - **Global toggle shortcut** — show/hide overlay from any app (default: ⌃⌥⌘K)
 - **Mouse click visualization** — ripple animation on left, right, and middle clicks with distinct colors
 - **8 keyboard sound profiles** — Cherry MX Blue/Brown/Red, Topre, Buckling Spring, Typewriter, Bubble Pop, Minimal Tap with output device selection
+- **6 quick presets** — Presentation, Coding, Streaming, Minimal, Typewriter, Mechanical — one-click profiles
+- **Custom presets** — Save, load, and delete your own named setting configurations
 - **Password field detection** — automatically hides keystrokes when typing in secure fields
 - **Configurable key groups** — toggle visibility for alphanumeric, modifiers, function keys, navigation, special keys, and Caps Lock independently
 - **Multi-monitor support** — show overlay on all screens or main screen only
@@ -67,7 +69,7 @@ Press **⌃⌥⌘K** (Control+Option+Command+K) to toggle the overlay from any a
 
 ### Settings
 
-Settings are organized in three tabs:
+Settings are organized in four tabs:
 
 #### General
 
@@ -100,6 +102,21 @@ Settings are organized in three tabs:
 |---|---|
 | **Duration** | How long keystrokes stay visible (0.5–5.0s) |
 | **Key Groups** | Toggle each group on/off independently |
+
+#### Presets
+
+6 built-in presets for common use cases, plus custom presets to save and restore your own configurations.
+
+| Preset | Description |
+|---|---|
+| **Presentation** | Large keys, dark theme, bounce animation for live demos |
+| **Coding** | Mono font, midnight theme, compact corner overlay |
+| **Streaming** | Ocean theme, scale animation, top position for streams |
+| **Minimal** | Small, subtle keys that stay out of your way |
+| **Typewriter** | Retro serif font with typewriter click sounds |
+| **Mechanical** | Full mechanical keyboard experience with MX Blue clicks |
+
+**Custom Presets:** Click "Save Current Settings" to capture your current configuration as a named preset. Custom presets store theme, animation, font, size, scale, opacity, position, display time, and sound settings. Right-click a custom preset to delete it.
 
 ### Key Groups
 

@@ -16,8 +16,11 @@ struct SettingsView: View {
             KeysTab()
                 .environmentObject(settings)
                 .tabItem { Label("Keys", systemImage: "keyboard") }
+            PresetsTab()
+                .environmentObject(settings)
+                .tabItem { Label("Presets", systemImage: "star") }
         }
-        .frame(width: 480, height: 500)
+        .frame(width: 480, height: 520)
         .padding()
     }
 }
@@ -28,7 +31,7 @@ private struct GeneralTab: View {
     @EnvironmentObject var settings: AppSettings
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @StateObject private var recorder = ShortcutRecorderState()
-    @State private var audioDevices: [AudioOutputDevice] = []
+    @State private var audioDevices = AudioOutputDevice.availableDevices()
 
     var body: some View {
         Form {
@@ -103,7 +106,6 @@ private struct GeneralTab: View {
                             Text(device.name).tag(device.id)
                         }
                     }
-                    .onAppear { audioDevices = AudioOutputDevice.availableDevices() }
                     SliderRow(label: "Volume", value: $settings.soundVolume,
                               range: 0.1...1.0, format: { String(format: "%.0f%%", $0 * 100) })
                 }
@@ -280,6 +282,128 @@ private struct KeysTab: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+// MARK: - Presets
+
+private struct PresetsTab: View {
+    @EnvironmentObject var settings: AppSettings
+    @State private var customPresets: [SavedPreset] = []
+    @State private var showSaveAlert = false
+    @State private var presetName = ""
+
+    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Button {
+                    presetName = ""
+                    showSaveAlert = true
+                } label: {
+                    Label("Save Current Settings", systemImage: "plus.circle.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity)
+
+                Text("Built-in")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+
+                LazyVGrid(columns: columns, spacing: 12) {
+                    ForEach(QuickPreset.all) { preset in
+                        PresetCard(name: preset.name, description: preset.description,
+                                   icon: preset.icon, isActive: isBuiltInActive(preset))
+                            .onTapGesture { preset.apply(to: settings) }
+                    }
+                }
+
+                if !customPresets.isEmpty {
+                    Text("My Presets")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(customPresets) { saved in
+                            PresetCard(name: saved.name, description: saved.summary,
+                                       icon: "bookmark.fill", isActive: isCustomActive(saved))
+                                .onTapGesture { saved.apply(to: settings) }
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        settings.deleteCustomPreset(id: saved.id)
+                                        customPresets = settings.loadCustomPresets()
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                        }
+                    }
+                }
+            }
+            .padding()
+        }
+        .onAppear { customPresets = settings.loadCustomPresets() }
+        .alert("Save Preset", isPresented: $showSaveAlert) {
+            TextField("Preset name", text: $presetName)
+            Button("Save") {
+                guard !presetName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+                settings.saveCurrentAsPreset(name: presetName.trimmingCharacters(in: .whitespaces))
+                customPresets = settings.loadCustomPresets()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Enter a name for your preset")
+        }
+    }
+
+    private func isBuiltInActive(_ preset: QuickPreset) -> Bool {
+        settings.selectedThemeId == preset.themeId &&
+        settings.animationStyle == preset.animationStyle &&
+        settings.fontStyle == preset.fontStyle &&
+        settings.position == preset.position
+    }
+
+    private func isCustomActive(_ saved: SavedPreset) -> Bool {
+        settings.selectedThemeId == saved.themeId &&
+        settings.animationStyle == saved.animationStyle &&
+        settings.fontStyle == saved.fontStyle &&
+        settings.position.rawValue == saved.position
+    }
+}
+
+private struct PresetCard: View {
+    let name: String
+    let description: String
+    let icon: String
+    let isActive: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(isActive ? Color.accentColor : .primary)
+                Text(name)
+                    .font(.headline)
+            }
+            Text(description)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, minHeight: 70, alignment: .leading)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isActive ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.06))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(isActive ? Color.accentColor : Color.secondary.opacity(0.15), lineWidth: isActive ? 2 : 0.5)
+        )
+        .contentShape(Rectangle())
     }
 }
 

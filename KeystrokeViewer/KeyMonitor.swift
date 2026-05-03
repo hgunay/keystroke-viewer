@@ -29,7 +29,8 @@ final class KeyMonitor {
         self.onKey = onKey
     }
 
-    func start() {
+    @discardableResult
+    func start() -> Bool {
         lastCapsState = NSEvent.modifierFlags.contains(.capsLock)
 
         let mask = (1 << CGEventType.keyDown.rawValue) |
@@ -90,7 +91,7 @@ final class KeyMonitor {
             userInfo: ctx
         ) else {
             NSLog("Keystroke Viewer: CGEventTap kurulamadi (Accessibility izni?)")
-            return
+            return false
         }
 
         self.tap = tap
@@ -115,6 +116,7 @@ final class KeyMonitor {
             )
             self.onKey(event)
         }
+        return true
     }
 
     func stop() {

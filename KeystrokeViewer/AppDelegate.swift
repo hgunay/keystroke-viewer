@@ -80,20 +80,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let trusted = AXIsProcessTrustedWithOptions(options)
 
         if trusted {
-            startMonitor()
+            if !startMonitor() {
+                Self.logger.warning("Tap creation failed despite trusted status, polling…")
+                startRetryTimer()
+            }
         } else {
             Self.logger.warning("Accessibility permission not granted yet, polling…")
-            permissionTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
-                if AXIsProcessTrusted() {
-                    timer.invalidate()
-                    self?.permissionTimer = nil
-                    DispatchQueue.main.async { self?.startMonitor() }
-                }
+            startRetryTimer()
+        }
+    }
+
+    private func startRetryTimer() {
+        permissionTimer?.invalidate()
+        permissionTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] timer in
+            guard let self else { timer.invalidate(); return }
+            if self.startMonitor() {
+                timer.invalidate()
+                self.permissionTimer = nil
             }
         }
     }
 
-    private func startMonitor() {
+    @discardableResult
+    private func startMonitor() -> Bool {
+        monitor?.stop()
         monitor = KeyMonitor { [weak self] event in
             DispatchQueue.main.async {
                 self?.overlay?.push(event)
@@ -101,8 +111,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         monitor?.settings = settings
-        monitor?.start()
-        Self.logger.info("Key monitor started")
+        let success = monitor?.start() ?? false
+        if success {
+            Self.logger.info("Key monitor started")
+        }
+        return success
     }
 
     @objc private func quitApp() {
