@@ -7,9 +7,12 @@ final class OverlayController {
     private var clickPanels: [NSPanel] = []
     private let store: KeystrokeStore
     private let clickStore = ClickStore()
+    private let cursorStore = CursorStore()
     private let settings: AppSettings
     private var cancellable: AnyCancellable?
     private var mouseMonitor: Any?
+    private var scrollMonitor: Any?
+    private var cursorTrackMonitor: Any?
 
     init(settings: AppSettings) {
         self.settings = settings
@@ -18,12 +21,16 @@ final class OverlayController {
         rebuildPanels()
         rebuildClickPanels()
         updateMouseMonitor()
+        updateScrollMonitor()
+        updateCursorTracker()
 
         cancellable = settings.objectWillChange.sink { [weak self] _ in
             DispatchQueue.main.async {
                 self?.rebuildPanels()
                 self?.rebuildClickPanels()
                 self?.updateMouseMonitor()
+                self?.updateScrollMonitor()
+                self?.updateCursorTracker()
             }
         }
 
@@ -114,6 +121,10 @@ final class OverlayController {
             rect = NSRect(x: sf.minX + margin, y: sf.minY + margin, width: cornerW, height: h)
         case .bottomRight:
             rect = NSRect(x: sf.maxX - cornerW - margin, y: sf.minY + margin, width: cornerW, height: h)
+        case .custom:
+            let cx = sf.minX + sf.width * settings.customPositionX - cornerW / 2
+            let cy = sf.minY + sf.height * settings.customPositionY
+            rect = NSRect(x: cx, y: cy, width: cornerW, height: h)
         }
         panel.setFrame(rect, display: true)
     }
@@ -121,7 +132,7 @@ final class OverlayController {
     // MARK: - Click Visualization
 
     private func rebuildClickPanels() {
-        let shouldShow = settings.overlayEnabled && settings.showMouseClicks
+        let shouldShow = settings.overlayEnabled && (settings.showMouseClicks || settings.showCursorHighlight || settings.showScrollIndicator)
 
         let screens: [NSScreen]
         switch settings.resolvedScreenMode {
@@ -142,7 +153,7 @@ final class OverlayController {
             if panel.frame != screen.frame {
                 panel.setFrame(screen.frame, display: true)
                 panel.contentView = NSHostingView(
-                    rootView: ClickOverlayView(store: clickStore, screenFrame: screen.frame)
+                    rootView: ClickOverlayView(store: clickStore, cursorStore: cursorStore, settings: settings, screenFrame: screen.frame)
                 )
             }
             if shouldShow {
@@ -168,7 +179,7 @@ final class OverlayController {
         panel.hasShadow = false
         panel.ignoresMouseEvents = true
         panel.contentView = NSHostingView(
-            rootView: ClickOverlayView(store: clickStore, screenFrame: screen.frame)
+            rootView: ClickOverlayView(store: clickStore, cursorStore: cursorStore, settings: settings, screenFrame: screen.frame)
         )
         return panel
     }
@@ -199,6 +210,51 @@ final class OverlayController {
             if let monitor = mouseMonitor {
                 NSEvent.removeMonitor(monitor)
                 mouseMonitor = nil
+            }
+        }
+    }
+
+    private func updateScrollMonitor() {
+        if settings.overlayEnabled && settings.showScrollIndicator {
+            guard scrollMonitor == nil else { return }
+            scrollMonitor = NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+                guard let self else { return }
+                let deltaY = event.scrollingDeltaY
+                guard abs(deltaY) > 2 else { return }
+                let direction: ScrollDirection = deltaY > 0 ? .up : .down
+                let scroll = ScrollEvent(
+                    location: NSEvent.mouseLocation,
+                    direction: direction,
+                    timestamp: Date()
+                )
+                DispatchQueue.main.async {
+                    self.clickStore.appendScroll(scroll)
+                }
+            }
+        } else {
+            if let monitor = scrollMonitor {
+                NSEvent.removeMonitor(monitor)
+                scrollMonitor = nil
+            }
+        }
+    }
+
+    private func updateCursorTracker() {
+        if settings.overlayEnabled && settings.showCursorHighlight {
+            guard cursorTrackMonitor == nil else { return }
+            cursorStore.position = NSEvent.mouseLocation
+            cursorTrackMonitor = NSEvent.addGlobalMonitorForEvents(
+                matching: [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged]
+            ) { [weak self] _ in
+                guard let self else { return }
+                DispatchQueue.main.async {
+                    self.cursorStore.position = NSEvent.mouseLocation
+                }
+            }
+        } else {
+            if let monitor = cursorTrackMonitor {
+                NSEvent.removeMonitor(monitor)
+                cursorTrackMonitor = nil
             }
         }
     }

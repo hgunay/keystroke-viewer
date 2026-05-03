@@ -32,6 +32,7 @@ private struct GeneralTab: View {
     @EnvironmentObject var settings: AppSettings
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @StateObject private var recorder = ShortcutRecorderState()
+    @StateObject private var themeRecorder = ShortcutRecorderState()
     @State private var audioDevices = AudioOutputDevice.availableDevices()
     @State private var showResetAlert = false
     @StateObject private var soundPreview = SoundPreview()
@@ -78,6 +79,47 @@ private struct GeneralTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            Section("Theme Shortcut") {
+                HStack {
+                    Text(themeRecorder.isRecording ? "Press shortcut…" : settings.themeShortcutLabel)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(themeRecorder.isRecording
+                                      ? Color.accentColor.opacity(0.15)
+                                      : Color.secondary.opacity(0.08))
+                        )
+                    Button(themeRecorder.isRecording ? "Cancel" : "Record") {
+                        if themeRecorder.isRecording {
+                            themeRecorder.stopRecording()
+                        } else {
+                            themeRecorder.startRecording { keyCode, mods, display in
+                                settings.themeShortcutKeyCode = keyCode
+                                settings.themeShortcutModifiers = mods
+                                settings.themeShortcutKeyDisplay = display
+                            }
+                        }
+                    }
+                    .frame(width: 60)
+                    if settings.themeShortcutKeyCode >= 0 && !themeRecorder.isRecording {
+                        Button("Clear") {
+                            settings.themeShortcutKeyCode = -1
+                            settings.themeShortcutModifiers = 0
+                            settings.themeShortcutKeyDisplay = ""
+                        }
+                        .foregroundStyle(.secondary)
+                    }
+                }
+                Text("Cycles through themes when pressed.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("Extras") {
+                Toggle("Keystroke counter", isOn: $settings.showKeystrokeCounter)
+                Toggle("Repeated key count (×N)", isOn: $settings.showRepeatCount)
+            }
             Section("Startup") {
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { newValue in
@@ -94,6 +136,19 @@ private struct GeneralTab: View {
             }
             Section("Mouse") {
                 Toggle("Show mouse click animation", isOn: $settings.showMouseClicks)
+                Toggle("Show scroll indicator", isOn: $settings.showScrollIndicator)
+                Toggle("Cursor highlight", isOn: $settings.showCursorHighlight)
+                if settings.showCursorHighlight {
+                    ColorPicker("Highlight color",
+                                selection: cursorColorBinding,
+                                supportsOpacity: false)
+                    SliderRow(label: "Size", value: $settings.cursorHighlightSize,
+                              range: 20...100, step: 5,
+                              format: { "\(Int($0))px" })
+                    SliderRow(label: "Opacity", value: $settings.cursorHighlightOpacity,
+                              range: 0.1...1.0,
+                              format: { String(format: "%.0f%%", $0 * 100) })
+                }
             }
             Section("Sound") {
                 Toggle("Keystroke sound", isOn: $settings.soundEnabled)
@@ -140,7 +195,10 @@ private struct GeneralTab: View {
             }
         }
         .formStyle(.grouped)
-        .onDisappear { recorder.stopRecording() }
+        .onDisappear {
+            recorder.stopRecording()
+            themeRecorder.stopRecording()
+        }
         .alert("Reset All Settings?", isPresented: $showResetAlert) {
             Button("Reset", role: .destructive) {
                 settings.resetToDefaults()
@@ -151,6 +209,23 @@ private struct GeneralTab: View {
         } message: {
             Text("This will restore all settings to their default values. Custom presets will not be deleted.")
         }
+    }
+
+    private var cursorColorBinding: Binding<CGColor> {
+        Binding(
+            get: {
+                let (r, g, b) = KeyTheme.rgb(from: settings.cursorHighlightColorHex)
+                return CGColor(srgbRed: r, green: g, blue: b, alpha: 1)
+            },
+            set: { cgColor in
+                guard let srgb = cgColor.converted(
+                    to: CGColorSpace(name: CGColorSpace.sRGB)!,
+                    intent: .defaultIntent, options: nil
+                ), let c = srgb.components, c.count >= 3 else { return }
+                settings.cursorHighlightColorHex = String(format: "#%02X%02X%02X",
+                    Int(c[0] * 255), Int(c[1] * 255), Int(c[2] * 255))
+            }
+        )
     }
 }
 
@@ -267,7 +342,15 @@ private struct AppearanceTab: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Position")
                         .font(.body)
-                    PositionMinimap(selection: $settings.position)
+                    PositionMinimap(selection: $settings.position, settings: settings)
+                }
+                if settings.position == .custom {
+                    SliderRow(label: "Horizontal", value: $settings.customPositionX,
+                              range: 0...1,
+                              format: { String(format: "%.0f%%", $0 * 100) })
+                    SliderRow(label: "Vertical", value: $settings.customPositionY,
+                              range: 0...1,
+                              format: { String(format: "%.0f%%", $0 * 100) })
                 }
                 Picker("Screen", selection: $settings.screenDisplayMode) {
                     ForEach(ScreenDisplayMode.allCases) { mode in
@@ -678,6 +761,7 @@ private struct ComboPreviewKey: View {
 
 private struct PositionMinimap: View {
     @Binding var selection: OverlayPosition
+    @ObservedObject var settings: AppSettings
 
     private let screenW: CGFloat = 200
     private let screenH: CGFloat = 125
@@ -693,12 +777,48 @@ private struct PositionMinimap: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
 
-            ForEach(OverlayPosition.allCases) { pos in
+            ForEach(OverlayPosition.allCases.filter { $0 != .custom }) { pos in
                 positionBar(for: pos)
+            }
+
+            if selection == .custom {
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: 12, height: 12)
+                    .shadow(color: Color.accentColor.opacity(0.5), radius: 4)
+                    .position(
+                        x: margin + (screenW - margin * 2) * settings.customPositionX,
+                        y: margin + (screenH - margin * 2) * (1 - settings.customPositionY)
+                    )
             }
         }
         .frame(width: screenW, height: screenH)
         .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    let x = max(0, min(1, (value.location.x - margin) / (screenW - margin * 2)))
+                    let y = max(0, min(1, 1 - (value.location.y - margin) / (screenH - margin * 2)))
+                    let hitPreset = presetNear(value.location)
+                    if hitPreset == nil {
+                        selection = .custom
+                        settings.customPositionX = x
+                        settings.customPositionY = y
+                    }
+                }
+        )
+    }
+
+    private func presetNear(_ point: CGPoint) -> OverlayPosition? {
+        for pos in OverlayPosition.allCases where pos != .custom {
+            let px = xPos(for: pos)
+            let py = yPos(for: pos)
+            let w = isCorner(pos) ? cornerW : barW
+            let rect = CGRect(x: px - w / 2, y: py - barH / 2, width: w, height: barH)
+            if rect.contains(point) { return pos }
+        }
+        return nil
     }
 
     @ViewBuilder
@@ -737,6 +857,7 @@ private struct PositionMinimap: View {
         case .topLeft, .bottomLeft:     return margin + cornerW / 2
         case .topRight, .bottomRight:   return screenW - margin - cornerW / 2
         case .top, .bottom, .center:    return screenW / 2
+        case .custom:                   return screenW * settings.customPositionX
         }
     }
 
@@ -745,6 +866,7 @@ private struct PositionMinimap: View {
         case .top, .topLeft, .topRight:          return margin + barH / 2
         case .bottom, .bottomLeft, .bottomRight: return screenH - margin - barH / 2
         case .center:                             return screenH / 2
+        case .custom:                             return screenH * (1 - settings.customPositionY)
         }
     }
 }

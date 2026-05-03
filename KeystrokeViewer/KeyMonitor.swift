@@ -6,12 +6,13 @@ private func isSecureInputActive() -> Bool {
 }
 
 struct KeyEvent: Identifiable {
-    let id = UUID()
+    var id = UUID()
     let chars: String
     let keyCode: UInt16
     let modifiers: NSEvent.ModifierFlags
     let isModifierOnly: Bool
     let timestamp: Date
+    var repeatCount: Int = 1
 
     static let kVK_CapsLock: UInt16 = 0x39
 }

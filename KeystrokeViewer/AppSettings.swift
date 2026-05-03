@@ -61,6 +61,7 @@ enum BarMaterialIntensity: String, CaseIterable, Identifiable {
 enum OverlayPosition: String, CaseIterable, Identifiable {
     case bottom, top, center
     case topLeft, topRight, bottomLeft, bottomRight
+    case custom
     var id: String { rawValue }
     var label: String {
         switch self {
@@ -71,6 +72,7 @@ enum OverlayPosition: String, CaseIterable, Identifiable {
         case .topRight:    return "Top Right"
         case .bottomLeft:  return "Bottom Left"
         case .bottomRight: return "Bottom Right"
+        case .custom:      return "Custom"
         }
     }
 }
@@ -542,6 +544,18 @@ final class AppSettings: ObservableObject {
     @Published var showBackgroundBar: Bool {
         didSet { defaults.set(showBackgroundBar, forKey: "showBackgroundBar") }
     }
+    @Published var showCursorHighlight: Bool {
+        didSet { defaults.set(showCursorHighlight, forKey: "showCursorHighlight") }
+    }
+    @Published var cursorHighlightColorHex: String {
+        didSet { defaults.set(cursorHighlightColorHex, forKey: "cursorHighlightColorHex") }
+    }
+    @Published var cursorHighlightSize: Double {
+        didSet { defaults.set(cursorHighlightSize, forKey: "cursorHighlightSize") }
+    }
+    @Published var cursorHighlightOpacity: Double {
+        didSet { defaults.set(cursorHighlightOpacity, forKey: "cursorHighlightOpacity") }
+    }
     @Published var backgroundBarStyle: String {
         didSet { defaults.set(backgroundBarStyle, forKey: "backgroundBarStyle") }
     }
@@ -553,6 +567,30 @@ final class AppSettings: ObservableObject {
     }
     @Published var backgroundBarMaterial: String {
         didSet { defaults.set(backgroundBarMaterial, forKey: "backgroundBarMaterial") }
+    }
+    @Published var showScrollIndicator: Bool {
+        didSet { defaults.set(showScrollIndicator, forKey: "showScrollIndicator") }
+    }
+    @Published var customPositionX: Double {
+        didSet { defaults.set(customPositionX, forKey: "customPositionX") }
+    }
+    @Published var customPositionY: Double {
+        didSet { defaults.set(customPositionY, forKey: "customPositionY") }
+    }
+    @Published var showKeystrokeCounter: Bool {
+        didSet { defaults.set(showKeystrokeCounter, forKey: "showKeystrokeCounter") }
+    }
+    @Published var showRepeatCount: Bool {
+        didSet { defaults.set(showRepeatCount, forKey: "showRepeatCount") }
+    }
+    @Published var themeShortcutKeyCode: Int {
+        didSet { defaults.set(themeShortcutKeyCode, forKey: "themeShortcutKeyCode") }
+    }
+    @Published var themeShortcutModifiers: Int {
+        didSet { defaults.set(themeShortcutModifiers, forKey: "themeShortcutModifiers") }
+    }
+    @Published var themeShortcutKeyDisplay: String {
+        didSet { defaults.set(themeShortcutKeyDisplay, forKey: "themeShortcutKeyDisplay") }
     }
 
     var resolvedFontStyle: FontStyle {
@@ -581,6 +619,27 @@ final class AppSettings: ObservableObject {
         if flags.contains(.command) { label += "⌘" }
         label += toggleKeyDisplay.uppercased()
         return label
+    }
+
+    var themeShortcutLabel: String {
+        guard themeShortcutKeyCode >= 0 else { return "Not Set" }
+        var label = ""
+        let flags = NSEvent.ModifierFlags(rawValue: UInt(themeShortcutModifiers))
+        if flags.contains(.control) { label += "⌃" }
+        if flags.contains(.option)  { label += "⌥" }
+        if flags.contains(.shift)   { label += "⇧" }
+        if flags.contains(.command) { label += "⌘" }
+        label += themeShortcutKeyDisplay.uppercased()
+        return label
+    }
+
+    func cycleTheme() {
+        let ids = KeyTheme.presets.map(\.id)
+        guard let idx = ids.firstIndex(of: selectedThemeId) else {
+            selectedThemeId = ids.first ?? "dark"
+            return
+        }
+        selectedThemeId = ids[(idx + 1) % ids.count]
     }
 
     func saveCurrentAsPreset(name: String) {
@@ -649,6 +708,18 @@ final class AppSettings: ObservableObject {
         backgroundBarColorHex = "#000000"
         backgroundBarOpacity = 0.8
         backgroundBarMaterial = BarMaterialIntensity.ultraThin.rawValue
+        showCursorHighlight = false
+        cursorHighlightColorHex = "#FFD60A"
+        cursorHighlightSize = 40.0
+        cursorHighlightOpacity = 0.4
+        showScrollIndicator = false
+        customPositionX = 0.5
+        customPositionY = 0.1
+        showKeystrokeCounter = false
+        showRepeatCount = true
+        themeShortcutKeyCode = 17
+        themeShortcutModifiers = Int(NSEvent.ModifierFlags([.control, .option, .command]).rawValue)
+        themeShortcutKeyDisplay = "T"
     }
 
     var activeTheme: KeyTheme {
@@ -729,5 +800,35 @@ final class AppSettings: ObservableObject {
         let bbo = defaults.double(forKey: "backgroundBarOpacity")
         self.backgroundBarOpacity = bbo > 0 ? bbo : 0.8
         self.backgroundBarMaterial = defaults.string(forKey: "backgroundBarMaterial") ?? BarMaterialIntensity.ultraThin.rawValue
+        self.showCursorHighlight = defaults.object(forKey: "showCursorHighlight") as? Bool ?? false
+        self.cursorHighlightColorHex = defaults.string(forKey: "cursorHighlightColorHex") ?? "#FFD60A"
+        let chs = defaults.double(forKey: "cursorHighlightSize")
+        self.cursorHighlightSize = chs > 0 ? chs : 40.0
+        let cho = defaults.double(forKey: "cursorHighlightOpacity")
+        self.cursorHighlightOpacity = cho > 0 ? cho : 0.4
+        self.showScrollIndicator = defaults.object(forKey: "showScrollIndicator") as? Bool ?? false
+        if let cpx = defaults.object(forKey: "customPositionX") as? Double {
+            self.customPositionX = cpx
+        } else {
+            self.customPositionX = 0.5
+        }
+        if let cpy = defaults.object(forKey: "customPositionY") as? Double {
+            self.customPositionY = cpy
+        } else {
+            self.customPositionY = 0.1
+        }
+        self.showKeystrokeCounter = defaults.object(forKey: "showKeystrokeCounter") as? Bool ?? false
+        self.showRepeatCount = defaults.object(forKey: "showRepeatCount") as? Bool ?? true
+        if let tkc = defaults.object(forKey: "themeShortcutKeyCode") as? Int {
+            self.themeShortcutKeyCode = tkc
+        } else {
+            self.themeShortcutKeyCode = 17
+        }
+        if let tmod = defaults.object(forKey: "themeShortcutModifiers") as? Int {
+            self.themeShortcutModifiers = tmod
+        } else {
+            self.themeShortcutModifiers = Int(NSEvent.ModifierFlags([.control, .option, .command]).rawValue)
+        }
+        self.themeShortcutKeyDisplay = defaults.string(forKey: "themeShortcutKeyDisplay") ?? "T"
     }
 }

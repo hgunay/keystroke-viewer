@@ -115,12 +115,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @discardableResult
     private func handleHotkey(_ event: NSEvent) -> Bool {
-        guard settings.toggleKeyCode >= 0 else { return false }
         let mods = event.modifierFlags.intersection([.control, .option, .shift, .command])
-        guard Int(event.keyCode) == settings.toggleKeyCode,
-              Int(mods.rawValue) == settings.toggleModifiers else { return false }
-        settings.overlayEnabled.toggle()
-        return true
+        let keyCode = Int(event.keyCode)
+        let modsRaw = Int(mods.rawValue)
+
+        if settings.toggleKeyCode >= 0,
+           keyCode == settings.toggleKeyCode,
+           modsRaw == settings.toggleModifiers {
+            settings.overlayEnabled.toggle()
+            return true
+        }
+
+        if settings.themeShortcutKeyCode >= 0,
+           keyCode == settings.themeShortcutKeyCode,
+           modsRaw == settings.themeShortcutModifiers {
+            settings.cycleTheme()
+            return true
+        }
+
+        return false
     }
 
     @objc private func toggleOverlay() {

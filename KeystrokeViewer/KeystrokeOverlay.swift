@@ -7,6 +7,7 @@ private enum KeyGroup {
 
 final class KeystrokeStore: ObservableObject {
     @Published var visible: [KeyEvent] = []
+    @Published var totalCount: Int = 0
     private var hideWork: DispatchWorkItem?
     private var pendingModifier: KeyEvent?
     private var modifierWork: DispatchWorkItem?
@@ -59,6 +60,9 @@ final class KeystrokeStore: ObservableObject {
     }
 
     func append(_ event: KeyEvent) {
+        if !event.isModifierOnly {
+            totalCount += 1
+        }
         guard isAllowed(event) else { return }
         let isCapsLock = event.isModifierOnly && event.keyCode == KeyEvent.kVK_CapsLock
 
@@ -90,6 +94,20 @@ final class KeystrokeStore: ObservableObject {
                 visible.removeAll { $0.isModifierOnly }
             }
         }
+
+        if settings.showRepeatCount && !event.isModifierOnly,
+           let lastIdx = visible.indices.last,
+           !visible[lastIdx].isModifierOnly,
+           visible[lastIdx].keyCode == event.keyCode,
+           visible[lastIdx].chars == event.chars {
+            var updated = event
+            updated.id = visible[lastIdx].id
+            updated.repeatCount = visible[lastIdx].repeatCount + 1
+            visible[lastIdx] = updated
+            scheduleHide()
+            return
+        }
+
         push(event)
     }
 
@@ -123,25 +141,46 @@ struct KeystrokeOverlay: View {
     @ObservedObject var store: KeystrokeStore
 
     var body: some View {
-        HStack(spacing: 0) {
-            if !store.visible.isEmpty {
-                HStack(spacing: 14) {
-                    ForEach(store.visible) { event in
-                        KeyCap(event: event, settings: store.settings)
-                            .transition(store.activeTransition)
+        ZStack {
+            HStack(spacing: 0) {
+                if !store.visible.isEmpty {
+                    HStack(spacing: 14) {
+                        ForEach(store.visible) { event in
+                            KeyCap(event: event, settings: store.settings)
+                                .transition(store.activeTransition)
+                        }
                     }
-                }
-                .padding(.horizontal, store.settings.showBackgroundBar ? 20 : 0)
-                .padding(.vertical, store.settings.showBackgroundBar ? 12 : 0)
-                .background {
-                    if store.settings.showBackgroundBar {
-                        BackgroundBarView(settings: store.settings)
+                    .padding(.horizontal, store.settings.showBackgroundBar ? 20 : 0)
+                    .padding(.vertical, store.settings.showBackgroundBar ? 12 : 0)
+                    .background {
+                        if store.settings.showBackgroundBar {
+                            BackgroundBarView(settings: store.settings)
+                        }
                     }
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .padding(.horizontal, 32)
+
+            if store.settings.showKeystrokeCounter && store.totalCount > 0 {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Text("\(store.totalCount)")
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                            .foregroundStyle(store.settings.activeTheme.textColor.opacity(0.5))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule()
+                                    .fill(store.settings.activeTheme.keyColor.opacity(0.4))
+                            )
+                    }
+                }
+                .padding(6)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        .padding(.horizontal, 32)
     }
 }
 
@@ -237,44 +276,57 @@ struct KeyCap: View {
     }
 
     var body: some View {
-        if shouldShowAsCombo, let ch = charKey {
-            let modSymbols = modifierKeys.map(\.symbol).joined()
-            let charDisplay = ch.symbol.count == 1 && ch.symbol.first?.isLetter == true
-                ? ch.symbol.uppercased() : ch.symbol
-            ComboKeyCap(
-                modifierSymbols: modSymbols,
-                charSymbol: charDisplay,
-                fontSize: settings.fontSize,
-                keyOpacity: settings.opacity,
-                keyScale: settings.keyScale,
-                theme: settings.activeTheme,
-                fontStyle: settings.resolvedFontStyle
-            )
-        } else {
-            HStack(spacing: 8 * settings.keyScale) {
-                ForEach(Array(modifierKeys.enumerated()), id: \.offset) { _, mod in
-                    SingleKey(
-                        symbol: mod.symbol,
-                        label: mod.name,
-                        fontSize: settings.fontSize,
-                        showIndicator: mod.name == "caps" ? capsLockOn : false,
-                        keyOpacity: settings.opacity,
-                        keyScale: settings.keyScale,
-                        theme: settings.activeTheme,
-                        fontStyle: settings.resolvedFontStyle
-                    )
+        Group {
+            if shouldShowAsCombo, let ch = charKey {
+                let modSymbols = modifierKeys.map(\.symbol).joined()
+                let charDisplay = ch.symbol.count == 1 && ch.symbol.first?.isLetter == true
+                    ? ch.symbol.uppercased() : ch.symbol
+                ComboKeyCap(
+                    modifierSymbols: modSymbols,
+                    charSymbol: charDisplay,
+                    fontSize: settings.fontSize,
+                    keyOpacity: settings.opacity,
+                    keyScale: settings.keyScale,
+                    theme: settings.activeTheme,
+                    fontStyle: settings.resolvedFontStyle
+                )
+            } else {
+                HStack(spacing: 8 * settings.keyScale) {
+                    ForEach(Array(modifierKeys.enumerated()), id: \.offset) { _, mod in
+                        SingleKey(
+                            symbol: mod.symbol,
+                            label: mod.name,
+                            fontSize: settings.fontSize,
+                            showIndicator: mod.name == "caps" ? capsLockOn : false,
+                            keyOpacity: settings.opacity,
+                            keyScale: settings.keyScale,
+                            theme: settings.activeTheme,
+                            fontStyle: settings.resolvedFontStyle
+                        )
+                    }
+                    if !event.isModifierOnly, let ch = charKey {
+                        SingleKey(
+                            symbol: ch.symbol,
+                            label: nil,
+                            fontSize: settings.fontSize,
+                            keyOpacity: settings.opacity,
+                            keyScale: settings.keyScale,
+                            theme: settings.activeTheme,
+                            fontStyle: settings.resolvedFontStyle
+                        )
+                    }
                 }
-                if !event.isModifierOnly, let ch = charKey {
-                    SingleKey(
-                        symbol: ch.symbol,
-                        label: nil,
-                        fontSize: settings.fontSize,
-                        keyOpacity: settings.opacity,
-                        keyScale: settings.keyScale,
-                        theme: settings.activeTheme,
-                        fontStyle: settings.resolvedFontStyle
-                    )
-                }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if event.repeatCount > 1 {
+                Text("×\(event.repeatCount)")
+                    .font(.system(size: 10 * settings.keyScale, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(Capsule().fill(Color.accentColor))
+                    .offset(x: 6 * settings.keyScale, y: -6 * settings.keyScale)
             }
         }
     }
@@ -645,6 +697,47 @@ private struct BackgroundBarView: View {
     }
 }
 
+// MARK: - Cursor Highlight
+
+final class CursorStore: ObservableObject {
+    @Published var position: CGPoint = .zero
+}
+
+struct CursorHighlightView: View {
+    @ObservedObject var cursorStore: CursorStore
+    @ObservedObject var settings: AppSettings
+    let screenFrame: NSRect
+
+    private var highlightColor: Color {
+        Color(hex: settings.cursorHighlightColorHex)
+    }
+
+    var body: some View {
+        if settings.showCursorHighlight && screenFrame.contains(cursorStore.position) {
+            let x = cursorStore.position.x - screenFrame.origin.x
+            let y = screenFrame.height - (cursorStore.position.y - screenFrame.origin.y)
+            let size = settings.cursorHighlightSize
+
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            highlightColor.opacity(settings.cursorHighlightOpacity),
+                            highlightColor.opacity(settings.cursorHighlightOpacity * 0.4),
+                            highlightColor.opacity(0)
+                        ],
+                        center: .center,
+                        startRadius: 2,
+                        endRadius: size
+                    )
+                )
+                .frame(width: size * 2, height: size * 2)
+                .position(x: x, y: y)
+                .allowsHitTesting(false)
+        }
+    }
+}
+
 // MARK: - Click Visualization
 
 enum ClickButton {
@@ -658,8 +751,20 @@ struct ClickEvent: Identifiable {
     let timestamp: Date
 }
 
+enum ScrollDirection {
+    case up, down
+}
+
+struct ScrollEvent: Identifiable {
+    let id = UUID()
+    let location: CGPoint
+    let direction: ScrollDirection
+    let timestamp: Date
+}
+
 final class ClickStore: ObservableObject {
     @Published var clicks: [ClickEvent] = []
+    @Published var scrolls: [ScrollEvent] = []
 
     func append(_ click: ClickEvent) {
         clicks.append(click)
@@ -668,24 +773,50 @@ final class ClickStore: ObservableObject {
             self?.clicks.removeAll { $0.id == clickId }
         }
     }
+
+    func appendScroll(_ scroll: ScrollEvent) {
+        scrolls.append(scroll)
+        let scrollId = scroll.id
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.scrolls.removeAll { $0.id == scrollId }
+        }
+    }
 }
 
 struct ClickOverlayView: View {
     @ObservedObject var store: ClickStore
+    @ObservedObject var cursorStore: CursorStore
+    @ObservedObject var settings: AppSettings
     let screenFrame: NSRect
 
     private var visibleClicks: [ClickEvent] {
         store.clicks.filter { screenFrame.contains($0.location) }
     }
 
+    private var visibleScrolls: [ScrollEvent] {
+        store.scrolls.filter { screenFrame.contains($0.location) }
+    }
+
     var body: some View {
         ZStack {
+            CursorHighlightView(cursorStore: cursorStore, settings: settings, screenFrame: screenFrame)
+
             ForEach(visibleClicks) { click in
                 ClickRipple(button: click.button)
                     .position(
                         x: click.location.x - screenFrame.origin.x,
                         y: screenFrame.height - (click.location.y - screenFrame.origin.y)
                     )
+            }
+
+            if settings.showScrollIndicator {
+                ForEach(visibleScrolls) { scroll in
+                    ScrollIndicator(direction: scroll.direction)
+                        .position(
+                            x: scroll.location.x - screenFrame.origin.x,
+                            y: screenFrame.height - (scroll.location.y - screenFrame.origin.y)
+                        )
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -723,5 +854,25 @@ struct ClickRipple: View {
                 animate = true
             }
         }
+    }
+}
+
+struct ScrollIndicator: View {
+    let direction: ScrollDirection
+    @State private var animate = false
+
+    var body: some View {
+        Image(systemName: direction == .up ? "chevron.up" : "chevron.down")
+            .font(.system(size: 14, weight: .bold))
+            .foregroundStyle(.white.opacity(animate ? 0 : 0.8))
+            .padding(6)
+            .background(Circle().fill(.white.opacity(animate ? 0 : 0.15)))
+            .scaleEffect(animate ? 1.5 : 1.0)
+            .offset(y: direction == .up ? (animate ? -15 : 0) : (animate ? 15 : 0))
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.4)) {
+                    animate = true
+                }
+            }
     }
 }
