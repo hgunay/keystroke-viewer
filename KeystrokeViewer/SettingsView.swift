@@ -196,7 +196,11 @@ private struct AppearanceTab: View {
                         Text(p.label).tag(p)
                     }
                 }
-                Toggle("Show on all screens", isOn: $settings.displayOnAllScreens)
+                Picker("Screen", selection: $settings.screenDisplayMode) {
+                    ForEach(ScreenDisplayMode.allCases) { mode in
+                        Text(mode.label).tag(mode.rawValue)
+                    }
+                }
                 Picker("Font", selection: $settings.fontStyle) {
                     ForEach(FontStyle.allCases) { style in
                         Text(style.label).tag(style.rawValue)

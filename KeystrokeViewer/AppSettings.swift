@@ -20,6 +20,18 @@ extension Color {
 
 // MARK: - Overlay Position
 
+enum ScreenDisplayMode: String, CaseIterable, Identifiable {
+    case mainOnly, allScreens, followActive
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .mainOnly:      return "Main Screen"
+        case .allScreens:    return "All Screens"
+        case .followActive:  return "Follow Active Screen"
+        }
+    }
+}
+
 enum OverlayPosition: String, CaseIterable, Identifiable {
     case bottom, top, center
     case topLeft, topRight, bottomLeft, bottomRight
@@ -465,8 +477,8 @@ final class AppSettings: ObservableObject {
     @Published var hideInSecureFields: Bool {
         didSet { defaults.set(hideInSecureFields, forKey: "hideInSecureFields") }
     }
-    @Published var displayOnAllScreens: Bool {
-        didSet { defaults.set(displayOnAllScreens, forKey: "displayOnAllScreens") }
+    @Published var screenDisplayMode: String {
+        didSet { defaults.set(screenDisplayMode, forKey: "screenDisplayMode") }
     }
     @Published var showMouseClicks: Bool {
         didSet { defaults.set(showMouseClicks, forKey: "showMouseClicks") }
@@ -492,6 +504,10 @@ final class AppSettings: ObservableObject {
 
     var resolvedFontStyle: FontStyle {
         FontStyle(rawValue: fontStyle) ?? .system
+    }
+
+    var resolvedScreenMode: ScreenDisplayMode {
+        ScreenDisplayMode(rawValue: screenDisplayMode) ?? .mainOnly
     }
 
     var toggleShortcutLabel: String {
@@ -559,7 +575,7 @@ final class AppSettings: ObservableObject {
         toggleKeyDisplay = "K"
         animationStyle = "fade"
         hideInSecureFields = true
-        displayOnAllScreens = false
+        screenDisplayMode = ScreenDisplayMode.mainOnly.rawValue
         showMouseClicks = false
         soundEnabled = false
         soundVolume = 0.5
@@ -626,7 +642,13 @@ final class AppSettings: ObservableObject {
         self.toggleKeyDisplay = defaults.string(forKey: "toggleKeyDisplay") ?? "K"
         self.animationStyle = defaults.string(forKey: "animationStyle") ?? "fade"
         self.hideInSecureFields = defaults.object(forKey: "hideInSecureFields") as? Bool ?? true
-        self.displayOnAllScreens = defaults.object(forKey: "displayOnAllScreens") as? Bool ?? false
+        if let savedMode = defaults.string(forKey: "screenDisplayMode") {
+            self.screenDisplayMode = savedMode
+        } else if defaults.object(forKey: "displayOnAllScreens") as? Bool == true {
+            self.screenDisplayMode = ScreenDisplayMode.allScreens.rawValue
+        } else {
+            self.screenDisplayMode = ScreenDisplayMode.mainOnly.rawValue
+        }
         self.showMouseClicks = defaults.object(forKey: "showMouseClicks") as? Bool ?? false
         self.soundEnabled = defaults.object(forKey: "soundEnabled") as? Bool ?? false
         let sv = defaults.double(forKey: "soundVolume")

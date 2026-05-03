@@ -38,13 +38,22 @@ final class OverlayController {
 
     func push(_ event: KeyEvent) {
         store.append(event)
+        if settings.resolvedScreenMode == .followActive {
+            moveToActiveScreen()
+        }
+    }
+
+    private func moveToActiveScreen() {
+        guard let screen = NSScreen.main, let panel = panels.first else { return }
+        position(panel, on: screen)
     }
 
     private func rebuildPanels() {
         let screens: [NSScreen]
-        if settings.displayOnAllScreens {
+        switch settings.resolvedScreenMode {
+        case .allScreens:
             screens = NSScreen.screens
-        } else {
+        case .mainOnly, .followActive:
             screens = [NSScreen.main].compactMap { $0 }
         }
 
@@ -115,9 +124,10 @@ final class OverlayController {
         let shouldShow = settings.overlayEnabled && settings.showMouseClicks
 
         let screens: [NSScreen]
-        if settings.displayOnAllScreens {
+        switch settings.resolvedScreenMode {
+        case .allScreens, .followActive:
             screens = NSScreen.screens
-        } else {
+        case .mainOnly:
             screens = [NSScreen.main].compactMap { $0 }
         }
 
