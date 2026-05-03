@@ -538,6 +538,37 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    func resetToDefaults() {
+        position = .bottom
+        fontSize = 36
+        opacity = 0.85
+        displayTime = 1.5
+        showAlphanumeric = true
+        showModifiers = true
+        showFunctionKeys = true
+        showNavigation = true
+        showSpecialKeys = true
+        showCapsLock = true
+        keyScale = 1.0
+        selectedThemeId = "dark"
+        customKeyColorHex = "#1D1D1F"
+        customTextColorHex = "#E8E8ED"
+        overlayEnabled = true
+        toggleKeyCode = 40
+        toggleModifiers = Int(NSEvent.ModifierFlags([.control, .option, .command]).rawValue)
+        toggleKeyDisplay = "K"
+        animationStyle = "fade"
+        hideInSecureFields = true
+        displayOnAllScreens = false
+        showMouseClicks = false
+        soundEnabled = false
+        soundVolume = 0.5
+        soundStyle = "mxBlue"
+        soundOutputDeviceUID = ""
+        fontStyle = "system"
+        compactCombos = true
+    }
+
     var activeTheme: KeyTheme {
         if selectedThemeId == "custom" {
             let k = KeyTheme.rgb(from: customKeyColorHex)

@@ -32,6 +32,7 @@ private struct GeneralTab: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @StateObject private var recorder = ShortcutRecorderState()
     @State private var audioDevices = AudioOutputDevice.availableDevices()
+    @State private var showResetAlert = false
 
     var body: some View {
         Form {
@@ -118,9 +119,26 @@ private struct GeneralTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            Section {
+                Button(role: .destructive) {
+                    showResetAlert = true
+                } label: {
+                    Label("Reset All Settings", systemImage: "arrow.counterclockwise")
+                }
+            }
         }
         .formStyle(.grouped)
         .onDisappear { recorder.stopRecording() }
+        .alert("Reset All Settings?", isPresented: $showResetAlert) {
+            Button("Reset", role: .destructive) {
+                settings.resetToDefaults()
+                launchAtLogin = false
+                try? SMAppService.mainApp.unregister()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will restore all settings to their default values. Custom presets will not be deleted.")
+        }
     }
 }
 
