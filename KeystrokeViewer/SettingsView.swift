@@ -321,12 +321,18 @@ private struct ThemePreview: View {
         VStack(spacing: 4) {
             ZStack {
                 if theme.isGlass {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .frame(width: 44, height: 36)
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(theme.keyColor.opacity(0.15))
-                        .frame(width: 44, height: 36)
+                    if #available(macOS 26, *) {
+                        Color.clear
+                            .frame(width: 44, height: 36)
+                            .glassEffect(in: .rect(cornerRadius: 6))
+                    } else {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 44, height: 36)
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(theme.keyColor.opacity(0.15))
+                            .frame(width: 44, height: 36)
+                    }
                 } else {
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(LinearGradient(
@@ -615,7 +621,16 @@ private struct ComboPreviewKey: View {
     private var keyUnit: CGFloat { 36 * settings.keyScale }
     private var cr: CGFloat { 6 * settings.keyScale }
 
+    @ViewBuilder
     var body: some View {
+        if theme.isGlass {
+            glassPreview
+        } else {
+            classicPreview
+        }
+    }
+
+    private var previewContent: some View {
         HStack(spacing: 2 * settings.keyScale) {
             Text(modifiers)
                 .font(settings.resolvedFontStyle.font(size: scaledFontSize * 0.42))
@@ -626,25 +641,36 @@ private struct ComboPreviewKey: View {
         }
         .padding(.horizontal, 10 * settings.keyScale)
         .frame(height: keyUnit)
-        .background(comboBackground)
-        .clipShape(RoundedRectangle(cornerRadius: cr, style: .continuous))
-        .shadow(color: .black.opacity(theme.isGlass ? 0.15 : (theme.isLight ? 0.15 : 0.50)),
-                radius: theme.isGlass ? 6 : 1.5, x: 0, y: theme.isGlass ? 3 : 2)
-        .shadow(color: .black.opacity(theme.isGlass ? 0.08 : (theme.isLight ? 0.10 : 0.35)),
-                radius: theme.isGlass ? 12 : 7, x: 0, y: 6)
-        .opacity(settings.opacity)
     }
 
     @ViewBuilder
-    private var comboBackground: some View {
-        if theme.isGlass {
-            ZStack {
-                Rectangle().fill(.ultraThinMaterial)
-                Rectangle().fill(theme.keyColor.opacity(0.15))
-            }
+    private var glassPreview: some View {
+        if #available(macOS 26, *) {
+            previewContent
+                .glassEffect(in: .rect(cornerRadius: cr))
+                .opacity(settings.opacity)
         } else {
-            LinearGradient(colors: theme.gradientColors, startPoint: .top, endPoint: .bottom)
+            previewContent
+                .background {
+                    ZStack {
+                        Rectangle().fill(.ultraThinMaterial)
+                        Rectangle().fill(theme.keyColor.opacity(0.15))
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: cr, style: .continuous))
+                .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+                .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
+                .opacity(settings.opacity)
         }
+    }
+
+    private var classicPreview: some View {
+        previewContent
+            .background(LinearGradient(colors: theme.gradientColors, startPoint: .top, endPoint: .bottom))
+            .clipShape(RoundedRectangle(cornerRadius: cr, style: .continuous))
+            .shadow(color: .black.opacity(theme.isLight ? 0.15 : 0.50), radius: 1.5, x: 0, y: 2)
+            .shadow(color: .black.opacity(theme.isLight ? 0.10 : 0.35), radius: 7, x: 0, y: 6)
+            .opacity(settings.opacity)
     }
 }
 

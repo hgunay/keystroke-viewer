@@ -315,23 +315,47 @@ struct SingleKey: View {
         }
     }
 
+    @ViewBuilder
     var body: some View {
+        if theme.isGlass {
+            glassKeyView
+        } else {
+            classicKeyView
+        }
+    }
+
+    private var keyContent: some View {
         Group {
-            if hasLabel {
-                modifierCap
-            } else {
-                charCap
-            }
+            if hasLabel { modifierCap } else { charCap }
         }
         .frame(width: keyUnit * widthRatio, height: keyUnit)
-        .background(keyBackground)
-        .overlay(keyEdges)
-        .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
-        .shadow(color: .black.opacity(theme.isGlass ? 0.15 : (theme.isLight ? 0.15 : 0.50)),
-                radius: theme.isGlass ? 6 : 1.5, x: 0, y: theme.isGlass ? 3 : 2)
-        .shadow(color: .black.opacity(theme.isGlass ? 0.08 : (theme.isLight ? 0.10 : 0.35)),
-                radius: theme.isGlass ? 12 : 7, x: 0, y: 6)
-        .opacity(keyOpacity)
+    }
+
+    @ViewBuilder
+    private var glassKeyView: some View {
+        if #available(macOS 26, *) {
+            keyContent
+                .glassEffect(in: .rect(cornerRadius: scaledCornerRadius))
+                .opacity(keyOpacity)
+        } else {
+            keyContent
+                .background(keyBackground)
+                .overlay(keyEdges)
+                .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
+                .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+                .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
+                .opacity(keyOpacity)
+        }
+    }
+
+    private var classicKeyView: some View {
+        keyContent
+            .background(keyBackground)
+            .overlay(keyEdges)
+            .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
+            .shadow(color: .black.opacity(theme.isLight ? 0.15 : 0.50), radius: 1.5, x: 0, y: 2)
+            .shadow(color: .black.opacity(theme.isLight ? 0.10 : 0.35), radius: 7, x: 0, y: 6)
+            .opacity(keyOpacity)
     }
 
     // MARK: – Variants
@@ -463,7 +487,16 @@ private struct ComboKeyCap: View {
     private var keyUnit: CGFloat { 36 * keyScale }
     private var scaledCornerRadius: CGFloat { 6 * keyScale }
 
+    @ViewBuilder
     var body: some View {
+        if theme.isGlass {
+            glassComboView
+        } else {
+            classicComboView
+        }
+    }
+
+    private var comboContent: some View {
         HStack(spacing: 2 * keyScale) {
             Text(modifierSymbols)
                 .font(fontStyle.font(size: scaledFontSize * 0.42))
@@ -474,14 +507,33 @@ private struct ComboKeyCap: View {
         }
         .padding(.horizontal, 10 * keyScale)
         .frame(height: keyUnit)
-        .background(comboBackground)
-        .overlay(keyEdges)
-        .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
-        .shadow(color: .black.opacity(theme.isGlass ? 0.15 : (theme.isLight ? 0.15 : 0.50)),
-                radius: theme.isGlass ? 6 : 1.5, x: 0, y: theme.isGlass ? 3 : 2)
-        .shadow(color: .black.opacity(theme.isGlass ? 0.08 : (theme.isLight ? 0.10 : 0.35)),
-                radius: theme.isGlass ? 12 : 7, x: 0, y: 6)
-        .opacity(keyOpacity)
+    }
+
+    @ViewBuilder
+    private var glassComboView: some View {
+        if #available(macOS 26, *) {
+            comboContent
+                .glassEffect(in: .rect(cornerRadius: scaledCornerRadius))
+                .opacity(keyOpacity)
+        } else {
+            comboContent
+                .background(comboBackground)
+                .overlay(keyEdges)
+                .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
+                .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+                .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
+                .opacity(keyOpacity)
+        }
+    }
+
+    private var classicComboView: some View {
+        comboContent
+            .background(comboBackground)
+            .overlay(keyEdges)
+            .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
+            .shadow(color: .black.opacity(theme.isLight ? 0.15 : 0.50), radius: 1.5, x: 0, y: 2)
+            .shadow(color: .black.opacity(theme.isLight ? 0.10 : 0.35), radius: 7, x: 0, y: 6)
+            .opacity(keyOpacity)
     }
 
     @ViewBuilder
