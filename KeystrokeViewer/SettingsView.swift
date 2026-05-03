@@ -172,6 +172,7 @@ private struct AppearanceTab: View {
             }
 
             Section("Display") {
+                Toggle("Compact modifier combos", isOn: $settings.compactCombos)
                 Picker("Position", selection: $settings.position) {
                     ForEach(OverlayPosition.allCases) { p in
                         Text(p.label).tag(p)

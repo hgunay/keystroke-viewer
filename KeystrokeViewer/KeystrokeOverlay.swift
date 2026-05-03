@@ -84,6 +84,12 @@ final class KeystrokeStore: ObservableObject {
 
         modifierWork?.cancel()
         pendingModifier = nil
+        let hasMods = !event.modifiers.intersection([.control, .option, .command]).isEmpty
+        if hasMods {
+            withAnimation(resolvedStyle.entranceAnimation) {
+                visible.removeAll { $0.isModifierOnly }
+            }
+        }
         push(event)
     }
 
@@ -152,7 +158,7 @@ struct KeyCap: View {
         if event.modifiers.contains(.control)  { result.append(("\u{2303}", "control")) }
         if event.modifiers.contains(.option)   { result.append(("\u{2325}", "option")) }
         if event.modifiers.contains(.shift)    { result.append(("\u{21E7}", "shift")) }
-        if event.modifiers.contains(.command)  { result.append(("\u{2318}", "command")) }
+        if event.modifiers.contains(.command)  { result.append(("\u{2318}", "cmd")) }
         if event.modifiers.contains(.numericPad) && event.isModifierOnly {
             result.append(("⊞", "num lock"))
         }
@@ -166,11 +172,32 @@ struct KeyCap: View {
         0x69: "F13", 0x6B: "F14", 0x71: "F15",
     ]
 
+    private static let keyCodeToChar: [UInt16: String] = [
+        0x00: "a", 0x01: "s", 0x02: "d", 0x03: "f", 0x04: "h",
+        0x05: "g", 0x06: "z", 0x07: "x", 0x08: "c", 0x09: "v",
+        0x0B: "b", 0x0C: "q", 0x0D: "w", 0x0E: "e", 0x0F: "r",
+        0x10: "y", 0x11: "t", 0x20: "u", 0x22: "i", 0x1F: "o",
+        0x23: "p", 0x25: "l", 0x26: "j", 0x28: "k", 0x2D: "n",
+        0x2E: "m",
+        0x12: "1", 0x13: "2", 0x14: "3", 0x15: "4", 0x17: "5",
+        0x16: "6", 0x1A: "7", 0x1C: "8", 0x19: "9", 0x1D: "0",
+        0x18: "=", 0x1B: "-", 0x1E: "]", 0x21: "[", 0x27: "'",
+        0x29: ";", 0x2A: "\\", 0x2B: ",", 0x2C: "/", 0x2F: ".",
+        0x32: "`",
+        0x24: "\r", 0x30: "\t", 0x31: " ", 0x33: "\u{7F}", 0x35: "\u{1B}",
+        0x7B: "\u{F702}", 0x7C: "\u{F703}", 0x7D: "\u{F701}", 0x7E: "\u{F700}",
+        0x73: "\u{F729}", 0x77: "\u{F72B}", 0x74: "\u{F72C}", 0x79: "\u{F72D}",
+        0x75: "\u{F746}",
+    ]
+
     private var charKey: (symbol: String, name: String?)? {
         if let fKey = Self.keyCodeMap[event.keyCode] {
             return (fKey, nil)
         }
-        let raw = event.chars
+        var raw = event.chars
+        if raw.isEmpty, let fallback = Self.keyCodeToChar[event.keyCode] {
+            raw = fallback
+        }
         guard let scalar = raw.unicodeScalars.first else { return nil }
         switch scalar.value {
         case 0x0D: return ("\u{21A9}", "return")
@@ -195,30 +222,52 @@ struct KeyCap: View {
         }
     }
 
+    private var shouldShowAsCombo: Bool {
+        guard settings.compactCombos else { return false }
+        guard !event.isModifierOnly else { return false }
+        guard charKey != nil else { return false }
+        return !event.modifiers.intersection([.control, .option, .command]).isEmpty
+    }
+
     var body: some View {
-        HStack(spacing: 8 * settings.keyScale) {
-            ForEach(Array(modifierKeys.enumerated()), id: \.offset) { _, mod in
-                SingleKey(
-                    symbol: mod.symbol,
-                    label: mod.name,
-                    fontSize: settings.fontSize,
-                    showIndicator: mod.name == "caps" ? capsLockOn : false,
-                    keyOpacity: settings.opacity,
-                    keyScale: settings.keyScale,
-                    theme: settings.activeTheme,
-                    fontStyle: settings.resolvedFontStyle
-                )
-            }
-            if !event.isModifierOnly, let ch = charKey {
-                SingleKey(
-                    symbol: ch.symbol,
-                    label: nil,
-                    fontSize: settings.fontSize,
-                    keyOpacity: settings.opacity,
-                    keyScale: settings.keyScale,
-                    theme: settings.activeTheme,
-                    fontStyle: settings.resolvedFontStyle
-                )
+        if shouldShowAsCombo, let ch = charKey {
+            let modSymbols = modifierKeys.map(\.symbol).joined()
+            let charDisplay = ch.symbol.count == 1 && ch.symbol.first?.isLetter == true
+                ? ch.symbol.uppercased() : ch.symbol
+            ComboKeyCap(
+                modifierSymbols: modSymbols,
+                charSymbol: charDisplay,
+                fontSize: settings.fontSize,
+                keyOpacity: settings.opacity,
+                keyScale: settings.keyScale,
+                theme: settings.activeTheme,
+                fontStyle: settings.resolvedFontStyle
+            )
+        } else {
+            HStack(spacing: 8 * settings.keyScale) {
+                ForEach(Array(modifierKeys.enumerated()), id: \.offset) { _, mod in
+                    SingleKey(
+                        symbol: mod.symbol,
+                        label: mod.name,
+                        fontSize: settings.fontSize,
+                        showIndicator: mod.name == "caps" ? capsLockOn : false,
+                        keyOpacity: settings.opacity,
+                        keyScale: settings.keyScale,
+                        theme: settings.activeTheme,
+                        fontStyle: settings.resolvedFontStyle
+                    )
+                }
+                if !event.isModifierOnly, let ch = charKey {
+                    SingleKey(
+                        symbol: ch.symbol,
+                        label: nil,
+                        fontSize: settings.fontSize,
+                        keyOpacity: settings.opacity,
+                        keyScale: settings.keyScale,
+                        theme: settings.activeTheme,
+                        fontStyle: settings.resolvedFontStyle
+                    )
+                }
             }
         }
     }
@@ -369,6 +418,72 @@ struct SingleKey: View {
             .frame(width: 8, height: 8)
             .shadow(color: Color(red: 0.29, green: 0.89, blue: 0.45).opacity(0.7), radius: 4)
             .shadow(color: Color(red: 0.29, green: 0.89, blue: 0.45).opacity(0.45), radius: 9)
+    }
+}
+
+// MARK: - Combo Key Cap
+
+private struct ComboKeyCap: View {
+    let modifierSymbols: String
+    let charSymbol: String
+    let fontSize: CGFloat
+    var keyOpacity: Double = 1.0
+    var keyScale: Double = 1.0
+    var theme: KeyTheme = KeyTheme.presets[0]
+    var fontStyle: FontStyle = .system
+
+    private var scaledFontSize: CGFloat { fontSize * keyScale }
+    private var keyUnit: CGFloat { 36 * keyScale }
+    private var scaledCornerRadius: CGFloat { 6 * keyScale }
+
+    var body: some View {
+        HStack(spacing: 2 * keyScale) {
+            Text(modifierSymbols)
+                .font(fontStyle.font(size: scaledFontSize * 0.42))
+                .foregroundStyle(theme.textColor.opacity(0.7))
+            Text(charSymbol)
+                .font(fontStyle.font(size: scaledFontSize * 0.5, weight: .medium))
+                .foregroundStyle(theme.textColor)
+        }
+        .padding(.horizontal, 10 * keyScale)
+        .frame(height: keyUnit)
+        .background(
+            LinearGradient(
+                colors: theme.gradientColors,
+                startPoint: .top, endPoint: .bottom
+            )
+        )
+        .overlay(keyEdges)
+        .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
+        .shadow(color: .black.opacity(theme.isLight ? 0.15 : 0.50), radius: 1.5, x: 0, y: 2)
+        .shadow(color: .black.opacity(theme.isLight ? 0.10 : 0.35), radius: 7, x: 0, y: 6)
+        .opacity(keyOpacity)
+    }
+
+    private var keyEdges: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous)
+                .strokeBorder(
+                    theme.isLight ? Color.black.opacity(0.12) : Color.white.opacity(0.09),
+                    lineWidth: 0.5
+                )
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(Color.white.opacity(theme.isLight ? 0.4 : 0.10))
+                    .frame(height: 1)
+                Spacer(minLength: 0)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
+            .allowsHitTesting(false)
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                Rectangle()
+                    .fill(Color.black.opacity(theme.isLight ? 0.15 : 0.55))
+                    .frame(height: 2)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
+            .allowsHitTesting(false)
+        }
     }
 }
 

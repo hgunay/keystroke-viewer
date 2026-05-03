@@ -486,6 +486,9 @@ final class AppSettings: ObservableObject {
     @Published var fontStyle: String {
         didSet { defaults.set(fontStyle, forKey: "fontStyle") }
     }
+    @Published var compactCombos: Bool {
+        didSet { defaults.set(compactCombos, forKey: "compactCombos") }
+    }
 
     var resolvedFontStyle: FontStyle {
         FontStyle(rawValue: fontStyle) ?? .system
@@ -600,5 +603,6 @@ final class AppSettings: ObservableObject {
         self.soundStyle = defaults.string(forKey: "soundStyle") ?? "mxBlue"
         self.soundOutputDeviceUID = defaults.string(forKey: "soundOutputDeviceUID") ?? ""
         self.fontStyle = defaults.string(forKey: "fontStyle") ?? "system"
+        self.compactCombos = defaults.object(forKey: "compactCombos") as? Bool ?? true
     }
 }

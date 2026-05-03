@@ -9,7 +9,7 @@ A macOS menu bar app that displays your keystrokes as a real-time overlay on scr
 ## Features
 
 - **Real-time keystroke overlay** with MacBook Pro keyboard proportions
-- **Modifier combo detection** — Cmd+Shift+S shows as a single combo, not three separate keys
+- **Compact combo display** — ⌘C, ⌃⌥⌘K shown as a single key cap instead of separate keys (toggleable)
 - **Caps Lock indicator** with green LED, shows on/off state
 - **Key repeat filtering** — holding a key only shows it once
 - **Function key support** — F1 through F15
@@ -88,6 +88,7 @@ Settings are organized in four tabs:
 |---|---|
 | **Theme** | Choose from 6 preset themes or create a custom color scheme |
 | **Custom colors** | Pick key background and text colors (when Custom theme is selected) |
+| **Compact combos** | Show modifier shortcuts (⌘C, ⌃⌥⌘K) as a single key cap instead of separate keys |
 | **Animation** | Keystroke appear/disappear style: None, Fade, Slide Up, Scale, Bounce |
 | **Position** | Overlay location: Bottom, Top, Center, or any corner |
 | **All screens** | Show overlay on every connected display simultaneously |
