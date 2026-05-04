@@ -33,26 +33,32 @@ A macOS menu bar app that displays your keystrokes as a real-time overlay on scr
 ## Requirements
 
 - macOS 13 (Ventura) or later
-- Xcode 15+
-- No Apple Developer account needed for local builds
 
-## Getting Started
+## Installation
+
+1. Download `KeystrokeViewer.zip` from the [latest release](https://github.com/hgunay/keystroke-viewer/releases/latest)
+2. Unzip and drag `KeystrokeViewer.app` to your Applications folder
+3. On first launch, macOS will show a security warning because the app is not notarized. To open it:
+   - Right-click the app → **Open** → click **Open** again in the dialog
+   - Or go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway**
+4. Grant Accessibility permission when prompted:
+   - **System Settings → Privacy & Security → Accessibility**
+   - Find **KeystrokeViewer** and enable it
+   - Restart the app
+5. A keyboard icon appears in the menu bar. Start typing in any app to see the overlay.
+
+## Build from Source
 
 1. Clone the repository:
    ```bash
    git clone https://github.com/hgunay/keystroke-viewer.git
    ```
 
-2. Open `KeystrokeViewer.xcodeproj` in Xcode
+2. Open `KeystrokeViewer.xcodeproj` in Xcode (15+)
 
 3. Build and run (Cmd+R)
 
-4. Grant Accessibility permission on first launch:
-   - **System Settings > Privacy & Security > Accessibility**
-   - Find **KeystrokeViewer** and enable it
-   - Restart the app
-
-5. A keyboard icon appears in the menu bar. Start typing in any app to see the overlay.
+4. Grant Accessibility permission as described above
 
 ## Usage
 
@@ -143,7 +149,7 @@ Settings are organized in four tabs:
 ## Known Limitations
 
 - **Sandbox is disabled** — required for CGEventTap. Mac App Store distribution would need a special entitlement from Apple.
-- **No code signing** — on first launch, you may need to go to System Settings > Privacy & Security and click "Open Anyway".
+- **Not notarized** — the app is ad-hoc signed but not notarized with Apple. On first launch, right-click → Open or allow it in System Settings > Privacy & Security.
 - **Function keys** — on MacBook keyboards, F1–F12 may require holding the `fn` key (depending on your system settings).
 
 ## License
