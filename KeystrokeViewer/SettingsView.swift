@@ -448,18 +448,17 @@ private struct ThemePreview: View {
         VStack(spacing: 4) {
             ZStack {
                 if theme.isGlass {
+                    #if compiler(>=6.2)
                     if #available(macOS 26, *) {
                         Color.clear
                             .frame(width: 44, height: 36)
                             .glassEffect(in: .rect(cornerRadius: 6))
                     } else {
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                            .frame(width: 44, height: 36)
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(theme.keyColor.opacity(0.15))
-                            .frame(width: 44, height: 36)
+                        themePreviewGlassFallback
                     }
+                    #else
+                    themePreviewGlassFallback
+                    #endif
                 } else {
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(LinearGradient(
@@ -507,6 +506,16 @@ private struct ThemePreview: View {
                 isHovered = hovering
             }
         }
+    }
+
+    @ViewBuilder
+    private var themePreviewGlassFallback: some View {
+        RoundedRectangle(cornerRadius: 6, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .frame(width: 44, height: 36)
+        RoundedRectangle(cornerRadius: 6, style: .continuous)
+            .fill(theme.keyColor.opacity(0.15))
+            .frame(width: 44, height: 36)
     }
 }
 
@@ -789,23 +798,31 @@ private struct ComboPreviewKey: View {
 
     @ViewBuilder
     private var glassPreview: some View {
+        #if compiler(>=6.2)
         if #available(macOS 26, *) {
             previewContent
                 .glassEffect(in: .rect(cornerRadius: cr))
                 .opacity(settings.opacity)
         } else {
-            previewContent
-                .background {
-                    ZStack {
-                        Rectangle().fill(.ultraThinMaterial)
-                        Rectangle().fill(theme.keyColor.opacity(0.15))
-                    }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: cr, style: .continuous))
-                .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
-                .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
-                .opacity(settings.opacity)
+            glassPreviewFallback
         }
+        #else
+        glassPreviewFallback
+        #endif
+    }
+
+    private var glassPreviewFallback: some View {
+        previewContent
+            .background {
+                ZStack {
+                    Rectangle().fill(.ultraThinMaterial)
+                    Rectangle().fill(theme.keyColor.opacity(0.15))
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: cr, style: .continuous))
+            .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+            .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
+            .opacity(settings.opacity)
     }
 
     private var classicPreview: some View {

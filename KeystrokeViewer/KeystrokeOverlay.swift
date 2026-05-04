@@ -389,19 +389,27 @@ struct SingleKey: View {
 
     @ViewBuilder
     private var glassKeyView: some View {
+        #if compiler(>=6.2)
         if #available(macOS 26, *) {
             keyContent
                 .glassEffect(in: .rect(cornerRadius: scaledCornerRadius))
                 .opacity(keyOpacity)
         } else {
-            keyContent
-                .background(keyBackground)
-                .overlay(keyEdges)
-                .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
-                .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
-                .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
-                .opacity(keyOpacity)
+            glassKeyFallback
         }
+        #else
+        glassKeyFallback
+        #endif
+    }
+
+    private var glassKeyFallback: some View {
+        keyContent
+            .background(keyBackground)
+            .overlay(keyEdges)
+            .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
+            .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+            .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
+            .opacity(keyOpacity)
     }
 
     private var classicKeyView: some View {
@@ -567,19 +575,27 @@ private struct ComboKeyCap: View {
 
     @ViewBuilder
     private var glassComboView: some View {
+        #if compiler(>=6.2)
         if #available(macOS 26, *) {
             comboContent
                 .glassEffect(in: .rect(cornerRadius: scaledCornerRadius))
                 .opacity(keyOpacity)
         } else {
-            comboContent
-                .background(comboBackground)
-                .overlay(keyEdges)
-                .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
-                .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
-                .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
-                .opacity(keyOpacity)
+            glassComboFallback
         }
+        #else
+        glassComboFallback
+        #endif
+    }
+
+    private var glassComboFallback: some View {
+        comboContent
+            .background(comboBackground)
+            .overlay(keyEdges)
+            .clipShape(RoundedRectangle(cornerRadius: scaledCornerRadius, style: .continuous))
+            .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+            .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
+            .opacity(keyOpacity)
     }
 
     private var classicComboView: some View {
