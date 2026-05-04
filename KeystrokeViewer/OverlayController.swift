@@ -13,6 +13,7 @@ final class OverlayController {
     private var mouseMonitor: Any?
     private var scrollMonitor: Any?
     private var cursorTrackMonitor: Any?
+    private var cursorPollTimer: Timer?
 
     init(settings: AppSettings) {
         self.settings = settings
@@ -251,11 +252,20 @@ final class OverlayController {
                     self.cursorStore.position = NSEvent.mouseLocation
                 }
             }
+            cursorPollTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
+                guard let self else { return }
+                let pos = NSEvent.mouseLocation
+                if pos != self.cursorStore.position {
+                    self.cursorStore.position = pos
+                }
+            }
         } else {
             if let monitor = cursorTrackMonitor {
                 NSEvent.removeMonitor(monitor)
                 cursorTrackMonitor = nil
             }
+            cursorPollTimer?.invalidate()
+            cursorPollTimer = nil
         }
     }
 }
