@@ -46,6 +46,7 @@ final class OverlayController {
 
     func push(_ event: KeyEvent) {
         store.append(event)
+        cursorStore.markTyping()
         if settings.resolvedScreenMode == .followActive {
             moveToActiveScreen()
         }
@@ -243,20 +244,20 @@ final class OverlayController {
     private func updateCursorTracker() {
         if settings.overlayEnabled && settings.showCursorHighlight {
             guard cursorTrackMonitor == nil else { return }
-            cursorStore.position = NSEvent.mouseLocation
+            cursorStore.updatePosition(NSEvent.mouseLocation)
             cursorTrackMonitor = NSEvent.addGlobalMonitorForEvents(
                 matching: [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged]
             ) { [weak self] _ in
                 guard let self else { return }
                 DispatchQueue.main.async {
-                    self.cursorStore.position = NSEvent.mouseLocation
+                    self.cursorStore.updatePosition(NSEvent.mouseLocation)
                 }
             }
             cursorPollTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
                 guard let self else { return }
                 let pos = NSEvent.mouseLocation
                 if pos != self.cursorStore.position {
-                    self.cursorStore.position = pos
+                    self.cursorStore.updatePosition(pos)
                 }
             }
         } else {

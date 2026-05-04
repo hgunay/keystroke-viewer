@@ -164,7 +164,7 @@ struct KeystrokeOverlay: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .padding(.horizontal, 32)
 
-            if store.settings.showKeystrokeCounter && store.totalCount > 0 {
+            if store.settings.showKeystrokeCounter && store.totalCount > 0 && !store.visible.isEmpty {
                 VStack {
                     Spacer()
                     HStack {
@@ -705,6 +705,16 @@ private struct BackgroundBarView: View {
 
 final class CursorStore: ObservableObject {
     @Published var position: CGPoint = .zero
+    @Published var isIdle: Bool = false
+
+    func updatePosition(_ pos: CGPoint) {
+        position = pos
+        isIdle = false
+    }
+
+    func markTyping() {
+        isIdle = true
+    }
 }
 
 struct CursorHighlightView: View {
@@ -717,7 +727,7 @@ struct CursorHighlightView: View {
     }
 
     var body: some View {
-        if settings.showCursorHighlight && screenFrame.contains(cursorStore.position) {
+        if settings.showCursorHighlight && !cursorStore.isIdle && screenFrame.contains(cursorStore.position) {
             let x = cursorStore.position.x - screenFrame.origin.x
             let y = screenFrame.height - (cursorStore.position.y - screenFrame.origin.y)
             let size = settings.cursorHighlightSize
