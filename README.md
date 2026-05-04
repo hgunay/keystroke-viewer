@@ -1,157 +1,255 @@
-# KeystrokeViewer
+<p align="center">
+  <img src="app-icon.svg" alt="KeystrokeViewer" width="128" height="128">
+</p>
 
-A macOS menu bar app that displays your keystrokes as a real-time overlay on screen, designed with MacBook Pro keyboard-style key caps.
+<h1 align="center">KeystrokeViewer</h1>
 
-![macOS](https://img.shields.io/badge/macOS-13%2B-blue)
-![Swift](https://img.shields.io/badge/Swift-5.9-orange)
-![License](https://img.shields.io/badge/license-MIT-green)
+<p align="center">
+  <strong>A macOS menu bar app that displays your keystrokes as a real-time overlay on screen</strong><br>
+  Designed with MacBook Pro keyboard-style key caps
+</p>
 
-## Features
+<p align="center">
+  <a href="https://github.com/hgunay/keystroke-viewer/releases/latest"><img src="https://img.shields.io/github/v/release/hgunay/keystroke-viewer?style=flat-square&label=Download&color=blue" alt="Download"></a>
+  <img src="https://img.shields.io/badge/macOS-13%2B-blue?style=flat-square&logo=apple&logoColor=white" alt="macOS 13+">
+  <img src="https://img.shields.io/badge/Swift-5.9-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 5.9">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License"></a>
+</p>
 
-- **Real-time keystroke overlay** with MacBook Pro keyboard proportions
-- **Compact combo display** — ⌘C, ⌃⌥⌘K shown as a single key cap instead of separate keys (toggleable)
-- **Caps Lock indicator** with green LED, shows on/off state
-- **Key repeat filtering** — holding a key only shows it once
-- **Function key support** — F1 through F15
-- **Case-aware display** — uppercase when Caps Lock is on, lowercase when off
-- **6 built-in themes** — Dark, Light, Midnight, Ocean, Rosé, Forest — plus custom color picker
-- **5 animation styles** — None, Fade, Slide Up, Scale, Bounce
-- **Global toggle shortcut** — show/hide overlay from any app (default: ⌃⌥⌘K)
-- **Mouse click visualization** — ripple animation on left, right, and middle clicks with distinct colors
-- **8 keyboard sound profiles** — Cherry MX Blue/Brown/Red, Topre, Buckling Spring, Typewriter, Bubble Pop, Minimal Tap with output device selection
-- **6 quick presets** — Presentation, Coding, Streaming, Minimal, Typewriter, Mechanical — one-click profiles
-- **Custom presets** — Save, load, and delete your own named setting configurations
-- **Password field detection** — automatically hides keystrokes when typing in secure fields
-- **Configurable key groups** — toggle visibility for alphanumeric, modifiers, function keys, navigation, special keys, and Caps Lock independently
-- **Multi-monitor support** — main screen only, all screens, or follow active screen automatically
-- **7 overlay positions** — top, bottom, center, and all four corners
-- **4 font styles** — System, Mono, Rounded, Serif
-- **Adjustable appearance** — font size, key scale, opacity, and display duration
-- **Launch at login** — optional auto-start via macOS Login Items
-- **Menu bar app** — runs as a lightweight tray icon, no Dock clutter
+---
 
-## Requirements
+## ⚡ Quick Start
 
-- macOS 13 (Ventura) or later
+> **3 steps to get running:**
 
-## Installation
+```
+1. 📦 Download → github.com/hgunay/keystroke-viewer/releases/latest
+2. 🚀 Unzip → Drag to Applications → Right-click → Open
+3. 🔐 Allow → System Settings → Privacy & Security → Accessibility → Enable
+```
 
-1. Download `KeystrokeViewer.zip` from the [latest release](https://github.com/hgunay/keystroke-viewer/releases/latest)
-2. Unzip and drag `KeystrokeViewer.app` to your Applications folder
-3. On first launch, macOS will show a security warning because the app is not notarized. To open it:
-   - Right-click the app → **Open** → click **Open** again in the dialog
-   - Or go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway**
-4. Grant Accessibility permission when prompted:
-   - **System Settings → Privacy & Security → Accessibility**
-   - Find **KeystrokeViewer** and enable it
-   - Restart the app
-5. A keyboard icon appears in the menu bar. Start typing in any app to see the overlay.
+---
 
-## Build from Source
+## ✨ Features
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/hgunay/keystroke-viewer.git
-   ```
+<table>
+<tr>
+<td width="50%">
 
-2. Open `KeystrokeViewer.xcodeproj` in Xcode (15+)
+### ⌨️ Keystroke Display
+- Real-time overlay with MacBook Pro proportions
+- Compact combo display — `⌘C`, `⌃⌥⌘K` as single key cap
+- Caps Lock indicator with green LED
+- Key repeat filtering
+- Function keys F1–F15
+- Case-aware (uppercase with Caps Lock)
+- Password field auto-hide 🔒
 
-3. Build and run (Cmd+R)
+</td>
+<td width="50%">
 
-4. Grant Accessibility permission as described above
+### 🎨 Themes & Appearance
+- **15 built-in themes** — Dark, Light, Midnight, Ocean, Rosé, Forest, Dracula, Nord, Solarized, Monokai, Catppuccin, GitHub, One Dark, Glass, Glass Light
+- Custom color picker
+- 5 animation styles — Fade, Slide Up, Scale, Bounce
+- 4 font styles — System, Mono, Rounded, Serif
+- Adjustable size, scale & opacity
 
-## Usage
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🖱️ Mouse & Sound
+- Click visualization with ripple animations
+- Distinct colors for left, right & middle click
+- Scroll indicator
+- **8 sound profiles** — Cherry MX Blue/Brown/Red, Topre, Buckling Spring, Typewriter, Bubble Pop, Minimal Tap
+- Output device selection & volume control
+
+</td>
+<td width="50%">
+
+### 🎯 Presets & Layout
+- **6 quick presets** — Presentation, Coding, Streaming, Minimal, Typewriter, Mechanical
+- Save/load custom presets
+- 7 overlay positions (corners, edges, center)
+- Multi-monitor support (main, all, follow active)
+- Configurable key groups
+- Launch at login
+
+</td>
+</tr>
+</table>
+
+---
+
+## 📦 Installation
+
+### Option 1: Download Release (Recommended)
+
+1. Download `KeystrokeViewer.zip` from the [**latest release**](https://github.com/hgunay/keystroke-viewer/releases/latest)
+
+2. Unzip and drag `KeystrokeViewer.app` to your **Applications** folder
+
+3. On first launch, macOS will show a security warning (the app is ad-hoc signed but not notarized):
+
+   > 💡 **Right-click** the app → **Open** → click **Open** again
+   >
+   > Or: **System Settings → Privacy & Security** → scroll down → **Open Anyway**
+
+4. Grant **Accessibility** permission:
+
+   > **System Settings → Privacy & Security → Accessibility** → Enable **KeystrokeViewer**
+
+5. Restart the app. A ⌨️ icon appears in the menu bar — start typing!
+
+### Option 2: Build from Source
+
+```bash
+git clone https://github.com/hgunay/keystroke-viewer.git
+cd keystroke-viewer
+open KeystrokeViewer.xcodeproj
+# Build & Run (⌘R) — Requires Xcode 15+
+```
+
+---
+
+## 🚀 Usage
 
 ### Menu Bar
 
-Click the keyboard icon in the menu bar:
-- **Show Overlay** — toggle keystroke display on/off
-- **Preferences** — open the settings window
-- **Quit** — exit the app
+Click the ⌨️ icon in the menu bar:
+
+| Action | Description |
+|:---:|---|
+| 👁️ **Show Overlay** | Toggle keystroke display on/off |
+| ⚙️ **Preferences** | Open the settings window |
+| 🚪 **Quit** | Exit the app |
 
 ### Global Shortcut
 
-Press **⌃⌥⌘K** (Control+Option+Command+K) to toggle the overlay from any app. You can customize or clear this shortcut in Preferences > General.
+Press **`⌃⌥⌘K`** to toggle the overlay from any app. Customizable in Preferences → General.
 
-### Settings
+---
+
+## ⚙️ Settings
 
 Settings are organized in four tabs:
 
-#### General
+<details>
+<summary><strong>🔧 General</strong></summary>
 
 | Setting | Description |
 |---|---|
 | **Show overlay** | Toggle keystroke display on/off |
-| **Toggle shortcut** | Record a custom global hotkey to show/hide the overlay |
+| **Toggle shortcut** | Record a custom global hotkey |
 | **Launch at login** | Auto-start when you log in |
-| **Mouse clicks** | Show expanding ripple animation at click location (left=white, right=blue, middle=orange) |
-| **Keystroke sound** | Toggle sound on/off, pick from 8 profiles, select output device, adjust volume (10–100%) |
-| **Hide in password fields** | Automatically suppress keystrokes when a secure input field is active |
+| **Mouse clicks** | Ripple animation (left=white, right=blue, middle=orange) |
+| **Keystroke sound** | 8 profiles, device selection, volume (10–100%) |
+| **Hide in password fields** | Suppress keystrokes in secure input fields |
 
-#### Appearance
+</details>
+
+<details>
+<summary><strong>🎨 Appearance</strong></summary>
 
 | Setting | Description |
 |---|---|
-| **Theme** | Choose from 6 preset themes or create a custom color scheme |
-| **Custom colors** | Pick key background and text colors (when Custom theme is selected) |
-| **Compact combos** | Show modifier shortcuts (⌘C, ⌃⌥⌘K) as a single key cap instead of separate keys |
-| **Animation** | Keystroke appear/disappear style: None, Fade, Slide Up, Scale, Bounce |
-| **Position** | Overlay location: Bottom, Top, Center, or any corner |
-| **Screen** | Main Screen, All Screens, or Follow Active Screen (overlay moves to whichever screen you're typing on) |
-| **Font** | System (SF Pro), Mono (SF Mono), Rounded (SF Rounded), Serif (New York) |
-| **Font size** | Key cap text size (16–48pt) |
-| **Key size** | Key cap scale (50–200%) |
-| **Opacity** | Key cap transparency (30–100%) |
+| **Theme** | 15 presets or custom color scheme |
+| **Custom colors** | Key background & text color picker |
+| **Compact combos** | `⌘C` as single key cap vs separate keys |
+| **Animation** | None, Fade, Slide Up, Scale, Bounce |
+| **Position** | Bottom, Top, Center, or any corner |
+| **Screen** | Main Screen, All Screens, Follow Active |
+| **Font** | System, Mono, Rounded, Serif |
+| **Font size** | 16–48pt |
+| **Key size** | 50–200% |
+| **Opacity** | 30–100% |
 
-#### Keys
+</details>
+
+<details>
+<summary><strong>🔤 Keys</strong></summary>
 
 | Setting | Description |
 |---|---|
 | **Duration** | How long keystrokes stay visible (0.5–5.0s) |
-| **Key Groups** | Toggle each group on/off independently |
+| **Alphanumeric** | A–Z, 0–9, symbols |
+| **Modifiers** | ⌘ ⇧ ⌥ ⌃ |
+| **Function keys** | F1–F15 |
+| **Navigation** | ← → ↑ ↓ Home, End, Page Up/Down |
+| **Special keys** | ↵ ⇥ ⌫ ␣ ⎋ |
+| **Caps Lock** | Caps Lock toggle events |
 
-#### Presets
+</details>
 
-6 built-in presets for common use cases, plus custom presets to save and restore your own configurations.
+<details>
+<summary><strong>🎯 Presets</strong></summary>
 
-| Preset | Description |
-|---|---|
-| **Presentation** | Large keys, dark theme, bounce animation for live demos |
-| **Coding** | Mono font, midnight theme, compact corner overlay |
-| **Streaming** | Ocean theme, scale animation, top position for streams |
-| **Minimal** | Small, subtle keys that stay out of your way |
-| **Typewriter** | Retro serif font with typewriter click sounds |
-| **Mechanical** | Full mechanical keyboard experience with MX Blue clicks |
+| Preset | Theme | Style | Best For |
+|---|---|---|---|
+| 🎤 **Presentation** | Dark | Bounce, Large | Live demos |
+| 💻 **Coding** | Midnight | Mono, Corner | Development |
+| 📺 **Streaming** | Ocean | Scale, Top | OBS/Twitch |
+| 🔇 **Minimal** | Light | Small, Subtle | Everyday use |
+| 📝 **Typewriter** | Custom | Serif + Clicks | Writing |
+| ⌨️ **Mechanical** | Custom | MX Blue Sound | Full experience |
 
-**Custom Presets:** Click "Save Current Settings" to capture your current configuration as a named preset. Custom presets store theme, animation, font, size, scale, opacity, position, display time, and sound settings. Right-click a custom preset to delete it.
+**Custom Presets:** Save Current Settings → name it → use anytime. Right-click to delete.
 
-### Key Groups
+</details>
 
-- **Alphanumeric** — A–Z, 0–9, symbols
-- **Modifiers** — Command, Shift, Option, Control
-- **Function keys** — F1–F15
-- **Navigation** — Arrow keys, Home, End, Page Up/Down
-- **Special keys** — Return, Tab, Delete, Space, Escape
-- **Caps Lock** — Caps Lock toggle events
+---
 
-## Architecture
+## 🏗️ Architecture
+
+```mermaid
+graph TD
+    A[🚀 KeystrokeApp] --> B[📋 AppDelegate]
+    B --> C[🔍 KeyMonitor]
+    B --> D[🖥️ OverlayController]
+    B --> E[⚙️ AppSettings]
+    C -->|Key Events| D
+    D --> F[🎨 KeystrokeOverlay]
+    E -->|Preferences| F
+    E -->|Preferences| D
+    B --> G[🔧 SettingsView]
+    E -->|Bindings| G
+```
 
 | File | Purpose |
 |---|---|
-| `KeystrokeApp.swift` | SwiftUI App entry point |
-| `AppDelegate.swift` | App lifecycle, Accessibility permission, menu bar, global hotkey |
-| `AppSettings.swift` | User preferences, theme system, animation styles |
-| `KeyMonitor.swift` | CGEventTap + NSEvent global monitor for key capture, secure input detection |
-| `OverlayController.swift` | NSPanel floating window management, visibility control |
-| `KeystrokeOverlay.swift` | SwiftUI key cap views, keystroke store, animated transitions |
-| `SettingsView.swift` | Tabbed preferences window (General, Appearance, Keys) |
+| 🚀 `KeystrokeApp.swift` | SwiftUI App entry point |
+| 📋 `AppDelegate.swift` | App lifecycle, accessibility, menu bar, global hotkey, sound manager |
+| ⚙️ `AppSettings.swift` | User preferences, 15 themes, 6 presets, audio device enumeration |
+| 🔍 `KeyMonitor.swift` | CGEventTap + NSEvent global monitor, secure input detection |
+| 🖥️ `OverlayController.swift` | NSPanel management, multi-monitor, mouse/scroll tracking |
+| 🎨 `KeystrokeOverlay.swift` | SwiftUI key caps, animations, click/cursor visualization |
+| 🔧 `SettingsView.swift` | Tabbed preferences UI, onboarding flow, shortcut recorder |
 
-## Known Limitations
+---
 
-- **Sandbox is disabled** — required for CGEventTap. Mac App Store distribution would need a special entitlement from Apple.
-- **Not notarized** — the app is ad-hoc signed but not notarized with Apple. On first launch, right-click → Open or allow it in System Settings > Privacy & Security.
-- **Function keys** — on MacBook keyboards, F1–F12 may require holding the `fn` key (depending on your system settings).
+## ⚠️ Known Limitations
 
-## License
+| Issue | Details |
+|---|---|
+| 🔓 **Sandbox disabled** | Required for CGEventTap — Mac App Store would need a special entitlement |
+| 📝 **Not notarized** | Ad-hoc signed; right-click → Open on first launch |
+| 🔤 **Function keys** | On MacBook, F1–F12 may require holding `fn` |
 
-MIT
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+<p align="center">
+  <sub>Made with ❤️ for the macOS community</sub>
+</p>
