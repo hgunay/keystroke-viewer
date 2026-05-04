@@ -106,88 +106,8 @@ private struct GeneralTab: View {
 
     var body: some View {
         Form {
-            Section("Overlay") {
+            Section {
                 Toggle("Show overlay", isOn: $settings.overlayEnabled)
-            }
-            Section("Toggle Shortcut") {
-                HStack {
-                    Text(recorder.isRecording ? "Press shortcut…" : settings.toggleShortcutLabel)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(recorder.isRecording
-                                      ? Color.accentColor.opacity(0.15)
-                                      : Color.secondary.opacity(0.08))
-                        )
-                    Button(recorder.isRecording ? "Cancel" : "Record") {
-                        if recorder.isRecording {
-                            recorder.stopRecording()
-                        } else {
-                            recorder.startRecording { keyCode, mods, display in
-                                settings.toggleKeyCode = keyCode
-                                settings.toggleModifiers = mods
-                                settings.toggleKeyDisplay = display
-                            }
-                        }
-                    }
-                    .frame(width: 60)
-                    if settings.toggleKeyCode >= 0 && !recorder.isRecording {
-                        Button("Clear") {
-                            settings.toggleKeyCode = -1
-                            settings.toggleModifiers = 0
-                            settings.toggleKeyDisplay = ""
-                        }
-                        .foregroundStyle(.secondary)
-                    }
-                }
-                Text("Press Delete while recording to clear. At least one modifier key (⌃⌥⇧⌘) is required.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Section("Theme Shortcut") {
-                HStack {
-                    Text(themeRecorder.isRecording ? "Press shortcut…" : settings.themeShortcutLabel)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(themeRecorder.isRecording
-                                      ? Color.accentColor.opacity(0.15)
-                                      : Color.secondary.opacity(0.08))
-                        )
-                    Button(themeRecorder.isRecording ? "Cancel" : "Record") {
-                        if themeRecorder.isRecording {
-                            themeRecorder.stopRecording()
-                        } else {
-                            themeRecorder.startRecording { keyCode, mods, display in
-                                settings.themeShortcutKeyCode = keyCode
-                                settings.themeShortcutModifiers = mods
-                                settings.themeShortcutKeyDisplay = display
-                            }
-                        }
-                    }
-                    .frame(width: 60)
-                    if settings.themeShortcutKeyCode >= 0 && !themeRecorder.isRecording {
-                        Button("Clear") {
-                            settings.themeShortcutKeyCode = -1
-                            settings.themeShortcutModifiers = 0
-                            settings.themeShortcutKeyDisplay = ""
-                        }
-                        .foregroundStyle(.secondary)
-                    }
-                }
-                Text("Cycles through themes when pressed.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Section("Extras") {
-                Toggle("Keystroke counter", isOn: $settings.showKeystrokeCounter)
-                Toggle("Repeated key count (×N)", isOn: $settings.showRepeatCount)
-            }
-            Section("Startup") {
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { newValue in
                         do {
@@ -200,8 +120,55 @@ private struct GeneralTab: View {
                             launchAtLogin = SMAppService.mainApp.status == .enabled
                         }
                     }
+                Toggle("Keystroke counter", isOn: $settings.showKeystrokeCounter)
+                Toggle("Repeated key count (×N)", isOn: $settings.showRepeatCount)
+            } header: {
+                SectionHeader(title: "Controls", icon: "slider.horizontal.3")
             }
-            Section("Mouse") {
+
+            Section {
+                ShortcutRecorderRow(
+                    title: "Toggle Overlay",
+                    shortcutLabel: settings.toggleShortcutLabel,
+                    recorder: recorder,
+                    hasShortcut: settings.toggleKeyCode >= 0,
+                    onRecord: {
+                        recorder.startRecording { keyCode, mods, display in
+                            settings.toggleKeyCode = keyCode
+                            settings.toggleModifiers = mods
+                            settings.toggleKeyDisplay = display
+                        }
+                    },
+                    onClear: {
+                        settings.toggleKeyCode = -1
+                        settings.toggleModifiers = 0
+                        settings.toggleKeyDisplay = ""
+                    },
+                    hint: "At least one modifier key (⌃⌥⇧⌘) required."
+                )
+                ShortcutRecorderRow(
+                    title: "Cycle Theme",
+                    shortcutLabel: settings.themeShortcutLabel,
+                    recorder: themeRecorder,
+                    hasShortcut: settings.themeShortcutKeyCode >= 0,
+                    onRecord: {
+                        themeRecorder.startRecording { keyCode, mods, display in
+                            settings.themeShortcutKeyCode = keyCode
+                            settings.themeShortcutModifiers = mods
+                            settings.themeShortcutKeyDisplay = display
+                        }
+                    },
+                    onClear: {
+                        settings.themeShortcutKeyCode = -1
+                        settings.themeShortcutModifiers = 0
+                        settings.themeShortcutKeyDisplay = ""
+                    }
+                )
+            } header: {
+                SectionHeader(title: "Shortcuts", icon: "command")
+            }
+
+            Section {
                 Toggle("Show mouse click animation", isOn: $settings.showMouseClicks)
                 Toggle("Show scroll indicator", isOn: $settings.showScrollIndicator)
                 Toggle("Cursor highlight", isOn: $settings.showCursorHighlight)
@@ -216,23 +183,27 @@ private struct GeneralTab: View {
                               range: 0.1...1.0,
                               format: { String(format: "%.0f%%", $0 * 100) })
                 }
+            } header: {
+                SectionHeader(title: "Mouse", icon: "computermouse")
             }
-            Section("Sound") {
+
+            Section {
                 Toggle("Keystroke sound", isOn: $settings.soundEnabled)
                 if settings.soundEnabled {
-                    HStack {
-                        Picker("Style", selection: $settings.soundStyle) {
-                            ForEach(SoundStyle.allCases) { style in
-                                Text(style.label).tag(style.rawValue)
-                            }
+                    Picker("Style", selection: $settings.soundStyle) {
+                        ForEach(SoundStyle.allCases) { style in
+                            Text(style.label).tag(style.rawValue)
                         }
+                    }
+                    .safeAreaInset(edge: .trailing, spacing: 8) {
                         Button {
                             soundPreview.playPreview(style: settings.soundStyle, volume: settings.soundVolume)
                         } label: {
-                            Image(systemName: "speaker.wave.2.fill")
-                                .font(.caption)
+                            Image(systemName: "play.circle.fill")
+                                .font(.title3)
+                                .foregroundStyle(Color.accentColor)
                         }
-                        .buttonStyle(.borderless)
+                        .buttonStyle(.plain)
                         .help("Preview sound")
                     }
                     Picker("Output", selection: $settings.soundOutputDeviceUID) {
@@ -244,21 +215,27 @@ private struct GeneralTab: View {
                     SliderRow(label: "Volume", value: $settings.soundVolume,
                               range: 0.1...1.0, format: { String(format: "%.0f%%", $0 * 100) })
                 }
+            } header: {
+                SectionHeader(title: "Sound", icon: "speaker.wave.2")
             }
-            Section("Privacy") {
-                Toggle("Hide keystrokes in password fields", isOn: $settings.hideInSecureFields)
-            }
+
             Section {
-                Text("Eger tuslar gozukmuyorsa: System Settings -> Privacy & Security -> Accessibility menusunden Keystroke Viewer'a izin ver, sonra uygulamayi yeniden baslat.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Toggle("Hide keystrokes in password fields", isOn: $settings.hideInSecureFields)
+                InfoCallout(
+                    icon: "exclamationmark.triangle.fill",
+                    text: "If keystrokes are not visible: Go to System Settings → Privacy & Security → Accessibility, enable Keystroke Viewer, then restart the app."
+                )
+            } header: {
+                SectionHeader(title: "Privacy", icon: "lock.shield")
             }
+
             Section {
                 Button(role: .destructive) {
                     showResetAlert = true
                 } label: {
                     Label("Reset All Settings", systemImage: "arrow.counterclockwise")
                 }
+                .frame(maxWidth: .infinity)
             }
         }
         .formStyle(.grouped)
@@ -650,6 +627,7 @@ private struct PresetCard: View {
     let description: String
     let icon: String
     let isActive: Bool
+    @State private var isHovered = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -659,6 +637,12 @@ private struct PresetCard: View {
                     .foregroundStyle(isActive ? Color.accentColor : .primary)
                 Text(name)
                     .font(.headline)
+                if isActive {
+                    Spacer()
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(Color.accentColor)
+                }
             }
             Text(description)
                 .font(.caption)
@@ -669,13 +653,23 @@ private struct PresetCard: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isActive ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.06))
+                .fill(isActive ? Color.accentColor.opacity(0.12)
+                      : (isHovered ? Color.secondary.opacity(0.10) : Color.secondary.opacity(0.06)))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(isActive ? Color.accentColor : Color.secondary.opacity(0.15), lineWidth: isActive ? 2 : 0.5)
+                .strokeBorder(isActive ? Color.accentColor
+                              : (isHovered ? Color.secondary.opacity(0.25) : Color.secondary.opacity(0.15)),
+                              lineWidth: isActive ? 2 : 0.5)
         )
+        .scaleEffect(isHovered ? 1.02 : 1.0)
+        .shadow(color: .black.opacity(isHovered ? 0.08 : 0), radius: 4, y: 2)
         .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.15)) {
+                isHovered = hovering
+            }
+        }
     }
 }
 
@@ -978,7 +972,7 @@ private struct AnimationPreviewCard: View {
                 .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 1.5)
         )
         .onHover { hovering in
-            isHovered = hovering
+            withAnimation(.easeOut(duration: 0.1)) { isHovered = hovering }
             if hovering { playDemo() }
         }
         .onAppear { playDemo() }
@@ -986,14 +980,17 @@ private struct AnimationPreviewCard: View {
 
     private func playDemo() {
         showing = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            withAnimation(style.entranceAnimation ?? .easeOut(duration: 0.2)) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(style.entranceAnimation ?? .easeOut(duration: 0.3)) {
                 showing = true
             }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            withAnimation(style.exitAnimation ?? .easeIn(duration: 0.2)) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            withAnimation(style.exitAnimation ?? .easeIn(duration: 0.3)) {
                 showing = false
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                if isHovered { playDemo() }
             }
         }
     }
@@ -1200,6 +1197,115 @@ struct OnboardingView: View {
     }
 }
 
+// MARK: - Section Header
+
+private struct SectionHeader: View {
+    let title: String
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.tint)
+            Text(title)
+        }
+    }
+}
+
+// MARK: - Shortcut Recorder Row
+
+private struct ShortcutRecorderRow: View {
+    let title: String
+    let shortcutLabel: String
+    @ObservedObject var recorder: ShortcutRecorderState
+    let hasShortcut: Bool
+    let onRecord: () -> Void
+    let onClear: () -> Void
+    var hint: String? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+            HStack(spacing: 8) {
+                Text(recorder.isRecording ? "Press shortcut…" : shortcutLabel)
+                    .font(.system(.body, design: .monospaced))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(recorder.isRecording
+                                  ? Color.accentColor.opacity(0.12)
+                                  : Color.secondary.opacity(0.06))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(recorder.isRecording
+                                          ? Color.accentColor.opacity(0.3)
+                                          : Color.secondary.opacity(0.1),
+                                          lineWidth: 1)
+                    )
+                Button(recorder.isRecording ? "Cancel" : "Record") {
+                    if recorder.isRecording {
+                        recorder.stopRecording()
+                    } else {
+                        onRecord()
+                    }
+                }
+                .controlSize(.small)
+                .buttonStyle(.bordered)
+                if hasShortcut && !recorder.isRecording {
+                    Button {
+                        onClear()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Clear shortcut")
+                }
+            }
+            if let hint {
+                Text(hint)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+// MARK: - Info Callout
+
+private struct InfoCallout: View {
+    let icon: String
+    let text: String
+    var tint: Color = .yellow
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .foregroundStyle(tint)
+                .font(.body)
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(tint.opacity(0.06))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(tint.opacity(0.15), lineWidth: 1)
+        )
+    }
+}
+
 // MARK: - Slider Row
 
 private struct SliderRow: View {
@@ -1210,17 +1316,22 @@ private struct SliderRow: View {
     let format: (Double) -> String
 
     var body: some View {
-        HStack {
+        HStack(spacing: 8) {
             Text(label)
-                .frame(width: 80, alignment: .leading)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(width: 80, alignment: .trailing)
+                .lineLimit(1)
             if let step {
                 Slider(value: $value, in: range, step: step)
             } else {
                 Slider(value: $value, in: range)
             }
             Text(format(value))
+                .font(.subheadline)
                 .monospacedDigit()
-                .frame(width: 44, alignment: .trailing)
+                .foregroundStyle(.secondary)
+                .frame(width: 48, alignment: .trailing)
         }
     }
 }
